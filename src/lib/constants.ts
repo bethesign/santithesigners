@@ -1,3 +1,6 @@
+// Storage bucket name
+export const STORAGE_BUCKET = 'santagift';
+
 export const AWKWARD_QUESTIONS = [
   "Allora, il fidanzatə?",
   "Ma come mai sei sempre single?",

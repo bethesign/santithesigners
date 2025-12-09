@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase/client';
 import { AuthLayout } from '../components/layout/AuthLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -10,10 +12,18 @@ import { cn } from '../components/ui/utils';
 
 export const FirstAccess = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { signUp } = useAuth();
+  const email = location.state?.email;
+
   const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userName, setUserName] = useState('');
+
   // Address fields
   const [address, setAddress] = useState({
     via: '',
@@ -22,6 +32,30 @@ export const FirstAccess = () => {
     provincia: '',
     note: ''
   });
+
+  useEffect(() => {
+    // Redirect if no email provided
+    if (!email) {
+      navigate('/login');
+      return;
+    }
+
+    // Fetch user data to get name
+    async function fetchUserData() {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, full_name')
+        .eq('email', email)
+        .single();
+
+      if (data) {
+        setUserId(data.id);
+        setUserName(data.full_name);
+      }
+    }
+
+    fetchUserData();
+  }, [email, navigate]);
 
   const checkStrength = (pass: string) => {
     return {
@@ -34,13 +68,67 @@ export const FirstAccess = () => {
   const strength = checkStrength(password);
   const isPasswordValid = strength.length && strength.uppercase && strength.number && password === confirmPassword && password.length > 0;
 
-  const handleNext = () => {
-    if (isPasswordValid) setStep(2);
+  const handleNext = async () => {
+    if (!isPasswordValid || !email) return;
+
+    setLoading(true);
+    setError('');
+
+    try {
+      // Create Supabase Auth user
+      const { error: signUpError } = await signUp(email, password, {
+        email,
+        full_name: userName,
+      });
+
+      if (signUpError) {
+        console.error('Signup error:', signUpError);
+        setError('Errore durante la creazione dell\'account. Riprova.');
+        setLoading(false);
+        return;
+      }
+
+      // Success - move to step 2 (address)
+      setStep(2);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error in handleNext:', err);
+      setError('Errore imprevisto. Riprova.');
+      setLoading(false);
+    }
   };
 
-  const handleSave = () => {
-    // Save logic here
-    navigate('/dashboard');
+  const handleSave = async () => {
+    if (!userId) {
+      navigate('/dashboard');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Update address in users table (optional)
+      if (address.via || address.citta) {
+        await supabase
+          .from('users')
+          .update({
+            shipping_address_street: address.via,
+            shipping_address_city: address.citta,
+            shipping_address_zip: address.cap,
+            shipping_address_province: address.provincia,
+            shipping_address_notes: address.note,
+            is_shipping_address_complete: !!(address.via && address.citta && address.cap),
+          })
+          .eq('id', userId);
+      }
+
+      // Navigate to dashboard
+      navigate('/dashboard');
+    } catch (err) {
+      console.error('Error saving address:', err);
+      // Navigate anyway since address is optional
+      navigate('/dashboard');
+    }
   };
 
   return (
@@ -62,7 +150,7 @@ export const FirstAccess = () => {
                 {step === 1 ? "Imposta Password" : "Dove spediamo?"}
             </CardTitle>
             <p className="text-center text-gray-500">
-                Ciao, Utente! {step === 1 ? "Iniziamo configurando il tuo account." : "Per i regali fisici."}
+                Ciao, {userName || 'Utente'}! {step === 1 ? "Iniziamo configurando il tuo account." : "Per i regali fisici."}
             </p>
           </CardHeader>
           <CardContent>
@@ -103,13 +191,19 @@ export const FirstAccess = () => {
                         <RequirementItem met={password === confirmPassword && password.length > 0} text="Le password coincidono" />
                     </div>
 
-                    <Button 
-                        className="w-full mt-4" 
-                        variant="secondary" // Red
-                        disabled={!isPasswordValid}
+                    {error && (
+                      <div className="text-sm text-red-500 text-center">
+                        {error}
+                      </div>
+                    )}
+
+                    <Button
+                        className="w-full mt-4"
+                        variant="secondary"
+                        disabled={!isPasswordValid || loading}
                         onClick={handleNext}
                     >
-                        Continua
+                        {loading ? 'Creazione account...' : 'Continua'}
                     </Button>
                 </motion.div>
               ) : (
@@ -136,19 +230,21 @@ export const FirstAccess = () => {
                     </div>
 
                     <div className="flex gap-3 mt-6">
-                        <Button 
-                            variant="ghost" 
+                        <Button
+                            variant="ghost"
                             className="flex-1"
-                            onClick={handleSave}
+                            onClick={() => navigate('/dashboard')}
+                            disabled={loading}
                         >
-                            Compila dopo
+                            Salta
                         </Button>
-                        <Button 
-                            variant="secondary" 
+                        <Button
+                            variant="secondary"
                             className="flex-1"
                             onClick={handleSave}
+                            disabled={loading}
                         >
-                            Salva e Vai
+                            {loading ? 'Salvataggio...' : 'Salva e Vai'}
                         </Button>
                     </div>
                 </motion.div>

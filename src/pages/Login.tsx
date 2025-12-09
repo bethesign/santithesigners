@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { checkEmailExists } from '../lib/supabase/auth';
+import { supabase } from '../lib/supabase/client';
 import { AuthLayout } from '../components/layout/AuthLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -9,29 +12,86 @@ import { motion } from 'motion/react';
 
 export const Login = () => {
   const navigate = useNavigate();
+  const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const [isReturningUser, setIsReturningUser] = useState(false);
 
-  const handleCheckEmail = () => {
+  const handleCheckEmail = async () => {
     if (!email.includes('@')) {
       setError('Inserisci un indirizzo email valido.');
       return;
     }
+
+    setLoading(true);
     setError('');
-    // Simulate check
-    setIsReturningUser(true);
+
+    try {
+      // Check if email exists in users table (pre-authorized users)
+      const emailExists = await checkEmailExists(email);
+
+      if (!emailExists) {
+        setError('Email non autorizzata. Non fai parte del Secret Santa.');
+        setLoading(false);
+        return;
+      }
+
+      // Try to sign in with a dummy password to check if account exists
+      const { error: testError } = await supabase.auth.signInWithPassword({
+        email,
+        password: '__test__password__check__',
+      });
+
+      // If user doesn't exist yet, redirect to first access
+      if (testError && testError.message.includes('Invalid login credentials')) {
+        // This could mean: no account, or wrong password
+        // We'll show password field and handle it there
+        setIsReturningUser(true);
+      } else {
+        // Some other error or success (shouldn't happen with dummy password)
+        setIsReturningUser(true);
+      }
+
+      setLoading(false);
+    } catch (err) {
+      console.error('Error checking email:', err);
+      setError('Errore durante la verifica. Riprova.');
+      setLoading(false);
+    }
   };
 
-  const handleLogin = () => {
-     if (!password) {
-        setError('Inserisci la password.');
+  const handleLogin = async () => {
+    if (!password) {
+      setError('Inserisci la password.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const { error: signInError } = await signIn(email, password);
+
+      if (signInError) {
+        if (signInError.message.includes('Invalid login credentials')) {
+          setError('Email o password non corretti.');
+        } else {
+          setError('Errore durante il login. Riprova.');
+        }
+        setLoading(false);
         return;
-     }
-     // Success
-     navigate('/dashboard');
+      }
+
+      // Success - AuthContext will handle redirect via ProtectedRoute
+      navigate('/dashboard');
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('Errore durante il login. Riprova.');
+      setLoading(false);
+    }
   };
 
   return (
@@ -114,24 +174,14 @@ export const Login = () => {
               </motion.p>
             )}
 
-            <Button 
-                className="w-full text-lg font-semibold shadow-lg shadow-red-500/20 hover:shadow-red-500/30" 
+            <Button
+                className="w-full text-lg font-semibold shadow-lg shadow-red-500/20 hover:shadow-red-500/30"
                 size="lg"
                 onClick={isReturningUser ? handleLogin : handleCheckEmail}
-                variant="default" // Primary (which is green in my theme? No, User said Primary Button is Red CTAs).
-                // Wait. Theme: Primary: Green #4a9960. Secondary: Red #ff6b6b (CTAs).
-                // "Accedi button (primary, full width)"
-                // Usually Primary button uses Primary color. 
-                // But Prompt says: "Buttons: Primary (red, rounded)".
-                // So my "default" button variant (which uses bg-primary -> green) is wrong for the "Primary Action".
-                // The user defines "Primary Button" as Red. 
-                // I should probably swap my Primary/Secondary variables or just use the "secondary" variant for the main CTA.
-                // Or update globals to make "primary" red?
-                // "Primary: Green (brand)... Secondary: Red (CTAs)".
-                // So "Brand" is Green, "CTA" is Red.
-                // I'll use `variant="secondary"` (Red) for the main action button.
+                disabled={loading}
+                variant="default"
             >
-              {isReturningUser ? 'Accedi' : 'Continua'}
+              {loading ? 'Caricamento...' : (isReturningUser ? 'Accedi' : 'Continua')}
             </Button>
 
             <div className="text-center text-sm text-gray-500 mt-4">
