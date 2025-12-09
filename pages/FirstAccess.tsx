@@ -1,0 +1,169 @@
+import React, { useState } from 'react';
+import { AuthLayout } from '../components/layout/AuthLayout';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { motion, AnimatePresence } from 'motion/react';
+import { Check, X, MapPin, Lock } from 'lucide-react';
+import { cn } from '../components/ui/utils';
+
+export const FirstAccess = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
+  const [step, setStep] = useState(1);
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  
+  // Address fields
+  const [address, setAddress] = useState({
+    via: '',
+    citta: '',
+    cap: '',
+    provincia: '',
+    note: ''
+  });
+
+  const checkStrength = (pass: string) => {
+    return {
+      length: pass.length >= 8,
+      uppercase: /[A-Z]/.test(pass),
+      number: /[0-9]/.test(pass)
+    };
+  };
+
+  const strength = checkStrength(password);
+  const isPasswordValid = strength.length && strength.uppercase && strength.number && password === confirmPassword && password.length > 0;
+
+  const handleNext = () => {
+    if (isPasswordValid) setStep(2);
+  };
+
+  const handleSave = () => {
+    // Save logic here
+    onNavigate('dashboard');
+  };
+
+  return (
+    <AuthLayout>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="w-full max-w-[450px]"
+      >
+        {/* Progress Indicator */}
+        <div className="flex justify-center mb-6 space-x-4">
+            <div className={cn("h-2 w-16 rounded-full transition-colors", step >= 1 ? "bg-brand-secondary" : "bg-gray-200")} />
+            <div className={cn("h-2 w-16 rounded-full transition-colors", step >= 2 ? "bg-brand-secondary" : "bg-gray-200")} />
+        </div>
+
+        <Card className="border-border/50 shadow-xl">
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold text-center">
+                {step === 1 ? "Imposta Password" : "Dove spediamo?"}
+            </CardTitle>
+            <p className="text-center text-gray-500">
+                Ciao, Utente! {step === 1 ? "Iniziamo configurando il tuo account." : "Per i regali fisici."}
+            </p>
+          </CardHeader>
+          <CardContent>
+            <AnimatePresence mode="wait">
+              {step === 1 ? (
+                <motion.div
+                  key="step1"
+                  initial={{ x: -20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  exit={{ x: 20, opacity: 0 }}
+                  className="space-y-4"
+                >
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Nuova Password</label>
+                        <Input 
+                            type="password" 
+                            value={password} 
+                            onChange={(e) => setPassword(e.target.value)} 
+                            className="pl-4"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Conferma Password</label>
+                        <Input 
+                            type="password" 
+                            value={confirmPassword} 
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            className="pl-4"
+                        />
+                    </div>
+
+                    {/* Requirements */}
+                    <div className="space-y-2 bg-gray-50 p-4 rounded-lg text-sm">
+                        <p className="font-medium text-gray-700 mb-2">Requisiti di sicurezza:</p>
+                        <RequirementItem met={strength.length} text="Almeno 8 caratteri" />
+                        <RequirementItem met={strength.uppercase} text="Una lettera maiuscola" />
+                        <RequirementItem met={strength.number} text="Un numero" />
+                        <RequirementItem met={password === confirmPassword && password.length > 0} text="Le password coincidono" />
+                    </div>
+
+                    <Button 
+                        className="w-full mt-4" 
+                        variant="secondary" // Red
+                        disabled={!isPasswordValid}
+                        onClick={handleNext}
+                    >
+                        Continua
+                    </Button>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="step2"
+                  initial={{ x: 20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  exit={{ x: -20, opacity: 0 }}
+                  className="space-y-4"
+                >
+                    <div className="bg-blue-50 text-blue-800 p-3 rounded-md text-sm mb-4 flex items-start gap-2">
+                        <MapPin className="h-4 w-4 mt-0.5 shrink-0" />
+                        <span>Se riceverai un regalo fisico, questo è l'indirizzo a cui verrà spedito.</span>
+                    </div>
+
+                    <div className="space-y-3">
+                        <Input placeholder="Via e Numero Civico" value={address.via} onChange={e => setAddress({...address, via: e.target.value})} />
+                        <div className="grid grid-cols-2 gap-3">
+                            <Input placeholder="Città" value={address.citta} onChange={e => setAddress({...address, citta: e.target.value})} />
+                            <Input placeholder="CAP" value={address.cap} onChange={e => setAddress({...address, cap: e.target.value})} />
+                        </div>
+                        <Input placeholder="Provincia" value={address.provincia} onChange={e => setAddress({...address, provincia: e.target.value})} />
+                        <Input placeholder="Note per il corriere (opzionale)" value={address.note} onChange={e => setAddress({...address, note: e.target.value})} />
+                    </div>
+
+                    <div className="flex gap-3 mt-6">
+                        <Button 
+                            variant="ghost" 
+                            className="flex-1"
+                            onClick={handleSave}
+                        >
+                            Compila dopo
+                        </Button>
+                        <Button 
+                            variant="secondary" 
+                            className="flex-1"
+                            onClick={handleSave}
+                        >
+                            Salva e Vai
+                        </Button>
+                    </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </AuthLayout>
+  );
+};
+
+const RequirementItem = ({ met, text }: { met: boolean; text: string }) => (
+    <div className="flex items-center gap-2">
+        <div className={cn("h-4 w-4 rounded-full flex items-center justify-center", met ? "bg-green-100 text-green-600" : "bg-gray-200 text-gray-400")}>
+            {met ? <Check className="h-3 w-3" /> : <div className="h-1.5 w-1.5 rounded-full bg-gray-400" />}
+        </div>
+        <span className={cn(met ? "text-green-700" : "text-gray-500")}>{text}</span>
+    </div>
+);
