@@ -4,7 +4,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { cn } from '../ui/utils';
 import { Gift, ScrollText, Timer, ArrowRight, CheckCircle2 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 
 // Reusable Card Component for Dashboard
 export const DashboardCard = ({ 

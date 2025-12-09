@@ -6,7 +6,7 @@ import { AuthLayout } from '../components/layout/AuthLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Check, X, MapPin, Lock } from 'lucide-react';
 import { cn } from '../components/ui/utils';
 

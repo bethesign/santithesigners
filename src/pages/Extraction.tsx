@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Gift, User, Sparkles, ArrowRight } from 'lucide-react';
 import confetti from 'canvas-confetti';
 

@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { InputWithIcon } from '../components/ui/InputWithIcon';
 import { Mail, Lock, Eye, EyeOff, Gift } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 
 export const Login = () => {
   const navigate = useNavigate();

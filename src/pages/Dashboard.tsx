@@ -6,7 +6,7 @@ import { DashboardCard } from '../components/dashboard/DashboardCard';
 import { Countdown } from '../components/dashboard/Countdown';
 import { Button } from '../components/ui/button';
 import { Gift, ScrollText, Timer, PartyPopper, CheckCircle } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 
 export const Dashboard = () => {
   const navigate = useNavigate();
