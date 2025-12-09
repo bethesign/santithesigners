@@ -100,15 +100,16 @@ export const Login = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-[400px]"
+        className="w-full px-4"
+        style={{ maxWidth: '550px' }}
       >
-        <Card className="border-border/50 shadow-xl backdrop-blur-sm">
+        <Card className="border-border/50 shadow-xl bg-white w-full">
           <CardHeader className="flex flex-col items-center space-y-2 pb-2">
             <div className="rounded-full bg-primary/10 p-3">
               <Gift className="h-8 w-8 text-primary" />
             </div>
             <CardTitle className="text-2xl font-bold text-center text-gray-800">
-              Bentornato!
+              Ti diamo il benvenuto
             </CardTitle>
             <p className="text-center text-sm text-gray-500">
               Accedi al tuo account Secret Santa
@@ -175,11 +176,10 @@ export const Login = () => {
             )}
 
             <Button
-                className="w-full text-lg font-semibold shadow-lg shadow-red-500/20 hover:shadow-red-500/30"
+                className="w-full text-lg font-semibold bg-[#226f54] text-white hover:bg-[#1a5640] shadow-lg shadow-green-500/20 hover:shadow-green-500/30"
                 size="lg"
                 onClick={isReturningUser ? handleLogin : handleCheckEmail}
                 disabled={loading}
-                variant="default"
             >
               {loading ? 'Caricamento...' : (isReturningUser ? 'Accedi' : 'Continua')}
             </Button>

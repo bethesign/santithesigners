@@ -47,7 +47,7 @@ export const Dashboard = () => {
         <div className="flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="text-center md:text-left">
             <h1 className="text-3xl font-bold text-gray-900">Ciao, {user?.full_name?.split(' ')[0]}! 👋</h1>
-            <p className="text-gray-500 mt-2">Benvenuto nel tuo pannello di controllo.</p>
+            <p className="text-gray-500 mt-2">Ti diamo il benvenuto nel tuo pannello di controllo.</p>
           </div>
           {extractionDate && !isDrawEnabled && (
             <div className="bg-white p-4 rounded-xl shadow-sm border">

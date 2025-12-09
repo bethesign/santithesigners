@@ -20,21 +20,21 @@ const TickerRow = ({
   // Mescoliamo le frasi per variare ogni riga
   const content = phrases.map((p, i) => (
     <span key={i} className="mx-6 flex items-center gap-4">
-      <span className="whitespace-nowrap font-bold uppercase text-christmas-offWhite/60 text-2xl md:text-4xl">
+      <span className="whitespace-nowrap font-display font-extrabold uppercase text-christmas-offWhite/60 text-4xl md:text-6xl leading-none">
         {p}
       </span>
-      <span className="text-christmas-gold/50 text-2xl md:text-3xl">❄️</span>
-      <span className="whitespace-nowrap font-black uppercase text-christmas-red/50 text-2xl md:text-4xl tracking-widest">
+      <span className="text-christmas-gold/50 text-3xl md:text-4xl">❄️</span>
+      <span className="whitespace-nowrap font-display font-black uppercase text-christmas-red/50 text-4xl md:text-6xl tracking-widest leading-none">
         {RECURRING_PHRASE}
       </span>
-      <span className="text-christmas-green/50 text-2xl md:text-3xl">🎄</span>
+      <span className="text-christmas-green/50 text-3xl md:text-4xl">🎄</span>
     </span>
   ));
 
   return (
-    <div className="flex w-full overflow-hidden py-1 select-none relative z-0">
+    <div className="flex w-full overflow-hidden py-0.5 select-none relative z-0">
       <motion.div
-        className="flex"
+        className="flex leading-none"
         initial={{ x: direction === "left" ? 0 : "-50%" }}
         animate={{ x: direction === "left" ? "-50%" : 0 }}
         transition={{

@@ -15,15 +15,16 @@ export default {
           offWhite: '#F0F4F8'
         },
         brand: {
-          primary: '#4a9960',
+          primary: '#226f54',
           'primary-light': '#a8e6b5',
-          'primary-dark': '#2d5f3d',
-          secondary: '#ff6b6b',
+          'primary-dark': '#1a5640',
+          secondary: '#da2c38',
           gold: '#ffd700',
         },
       },
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
+        display: ['Spectral', 'serif'],
       },
       animation: {
         'swing': 'swing 3s ease-in-out infinite',

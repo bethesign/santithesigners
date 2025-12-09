@@ -206,7 +206,7 @@ export const SetupPage: React.FC<SetupPageProps> = ({ onNavigate, email, userDat
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-8">
           <h2 className="text-4xl font-bold text-white mb-3 drop-shadow-lg">
-            Benvenuto, {userData.full_name}! 👋
+            Ti diamo il benvenuto, {userData.full_name}! 👋
           </h2>
           <p className="text-white text-lg drop-shadow-md">
             {step === 1 ? 'Crea la tua password' : 'Inserisci il tuo indirizzo (opzionale)'}
