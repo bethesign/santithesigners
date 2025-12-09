@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from 'react-router-dom';
 import { AWKWARD_QUESTIONS, RECURRING_PHRASE } from "../lib/constants";
 
 // --- COMPONENTI INTERNI ---
@@ -91,11 +92,8 @@ const Snowflakes = () => {
 };
 
 // 3. L'Arbre Magique (SVG Custom)
-interface ArbreMagiqueProps {
-  onNavigate: (page: string) => void;
-}
-
-const ArbreMagique: React.FC<ArbreMagiqueProps> = ({ onNavigate }) => {
+const ArbreMagique: React.FC = () => {
+  const navigate = useNavigate();
   const [lights, setLights] = useState<any[]>([]);
 
   useEffect(() => {
@@ -186,7 +184,7 @@ const ArbreMagique: React.FC<ArbreMagiqueProps> = ({ onNavigate }) => {
                 {/* Il Button "Smell of Santa" posizionato sulla base */}
                 <div className="absolute bottom-[25px] md:bottom-[30px] left-0 right-0 flex justify-center">
                     <button
-                        onClick={() => onNavigate('login')}
+                        onClick={() => navigate('/login')}
                         className="
                             bg-christmas-red text-white font-black uppercase tracking-wider
                             px-6 py-3 rounded-full border-4 border-white
@@ -207,11 +205,7 @@ const ArbreMagique: React.FC<ArbreMagiqueProps> = ({ onNavigate }) => {
 
 // --- PAGINA PRINCIPALE ---
 
-interface HomepageProps {
-  onNavigate: (page: string) => void;
-}
-
-export const Homepage: React.FC<HomepageProps> = ({ onNavigate }) => {
+export const Homepage: React.FC = () => {
   // Dividiamo le frasi in chunk per creare righe diverse
   const chunkSize = 5;
   const shuffledRows = [];
@@ -247,7 +241,7 @@ export const Homepage: React.FC<HomepageProps> = ({ onNavigate }) => {
       <Snowflakes />
 
       {/* 4. Elemento Centrale (Albero + Button) */}
-      <ArbreMagique onNavigate={onNavigate} />
+      <ArbreMagique />
 
     </main>
   );

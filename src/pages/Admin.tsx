@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -8,7 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Switch } from '../components/ui/switch';
 import { ArrowLeft, Users, Play, Settings, Gift, RefreshCw, Trash2 } from 'lucide-react';
 
-export const Admin = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
+export const Admin = () => {
+  const navigate = useNavigate();
   const [isEventStarted, setIsEventStarted] = useState(false);
 
   // Mock Data
@@ -27,13 +29,13 @@ export const Admin = ({ onNavigate }: { onNavigate: (page: string) => void }) =>
   };
 
   return (
-    <DashboardLayout onNavigate={onNavigate} userName="Admin">
+    <DashboardLayout userName="Admin">
       <div className="space-y-6">
         
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="rounded-full" onClick={() => onNavigate('dashboard')}>
+            <Button variant="ghost" size="icon" className="rounded-full" onClick={() => navigate('/dashboard')}>
               <ArrowLeft className="h-6 w-6" />
             </Button>
             <div>

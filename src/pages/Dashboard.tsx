@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { DashboardCard } from '../components/dashboard/DashboardCard';
 import { Countdown } from '../components/dashboard/Countdown';
@@ -6,7 +7,8 @@ import { Button } from '../components/ui/button';
 import { Gift, ScrollText, Timer, PartyPopper, CheckCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 
-export const Dashboard = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
+export const Dashboard = () => {
+  const navigate = useNavigate();
   // Demo State
   const [state, setState] = useState<'initial' | 'ready'>('initial');
 
@@ -14,7 +16,7 @@ export const Dashboard = ({ onNavigate }: { onNavigate: (page: string) => void }
   const extractionDate = new Date('2024-12-24T20:00:00');
 
   return (
-    <DashboardLayout userName="Mario" isLive={state === 'ready'} onNavigate={onNavigate}>
+    <DashboardLayout userName="Mario" isLive={state === 'ready'}>
       <div className="flex flex-col gap-8">
         
         {/* Header Section */}
@@ -39,7 +41,7 @@ export const Dashboard = ({ onNavigate }: { onNavigate: (page: string) => void }
               icon={Gift}
               status={state === 'initial' ? 'pending' : 'completed'}
               actionLabel={state === 'initial' ? "Carica Regalo" : "Visualizza Regalo"}
-              onClick={() => onNavigate('gift-upload')}
+              onClick={() => navigate('/dashboard/gift')}
             >
               {state === 'initial' ? (
                 <p>Non hai ancora caricato il regalo che farai. Caricalo per partecipare all'estrazione!</p>
@@ -61,7 +63,7 @@ export const Dashboard = ({ onNavigate }: { onNavigate: (page: string) => void }
               icon={ScrollText}
               status={state === 'initial' ? 'pending' : 'completed'}
               actionLabel={state === 'initial' ? "Inizia Quiz" : "Vedi Classifica"}
-              onClick={() => onNavigate('quiz')}
+              onClick={() => navigate('/quiz')}
             >
               {state === 'initial' ? (
                 <p>Rispondi al quiz per determinare l'ordine di estrazione. Sii veloce!</p>
@@ -85,7 +87,7 @@ export const Dashboard = ({ onNavigate }: { onNavigate: (page: string) => void }
               status={state === 'ready' ? 'completed' : 'locked'}
               actionLabel="Apri Regalo"
               disabled={state !== 'ready'}
-              onClick={() => onNavigate('gift-received')}
+              onClick={() => navigate('/dashboard/gift-received')}
             >
                {state === 'initial' ? (
                 <p className="text-gray-400 italic">Il tuo regalo apparirà qui dopo l'estrazione.</p>
@@ -105,7 +107,7 @@ export const Dashboard = ({ onNavigate }: { onNavigate: (page: string) => void }
               status={state === 'ready' ? 'active' : 'pending'}
               actionLabel="Partecipa all'Estrazione"
               disabled={state !== 'ready'}
-              onClick={() => onNavigate('extraction')}
+              onClick={() => navigate('/extraction')}
             >
               {state === 'initial' ? (
                 <p className="text-gray-500">L'evento non è ancora iniziato.</p>

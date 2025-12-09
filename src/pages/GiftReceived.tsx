@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { ArrowLeft, Gift, ExternalLink, PartyPopper } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-export const GiftReceived = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
+export const GiftReceived = () => {
+  const navigate = useNavigate();
   const [isRevealed, setIsRevealed] = useState(false);
 
   // Mock received gift data
@@ -19,12 +21,12 @@ export const GiftReceived = ({ onNavigate }: { onNavigate: (page: string) => voi
   };
 
   return (
-    <DashboardLayout onNavigate={onNavigate} userName="Mario" isLive={true}>
+    <DashboardLayout userName="Mario" isLive={true}>
       <div className="max-w-2xl mx-auto space-y-6">
         
         {/* Header */}
         <div className="flex items-center gap-2 mb-6">
-          <Button variant="ghost" size="icon" className="rounded-full" onClick={() => onNavigate('dashboard')}>
+          <Button variant="ghost" size="icon" className="rounded-full" onClick={() => navigate('/dashboard')}>
             <ArrowLeft className="h-6 w-6" />
           </Button>
           <h1 className="text-2xl font-bold">Il tuo Regalo</h1>
@@ -99,7 +101,7 @@ export const GiftReceived = ({ onNavigate }: { onNavigate: (page: string) => voi
                     )}
 
                     <div className="flex justify-center pt-4">
-                        <Button variant="outline" onClick={() => onNavigate('feedback')}>
+                        <Button variant="outline" onClick={() => navigate('/feedback')}>
                             Lascia un Feedback
                         </Button>
                     </div>

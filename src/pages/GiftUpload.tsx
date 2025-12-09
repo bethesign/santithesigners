@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { Countdown } from '../components/dashboard/Countdown';
 import { Card, CardContent } from '../components/ui/card';
@@ -9,18 +10,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { ArrowLeft, Upload, Link as LinkIcon, Gift, Camera } from 'lucide-react';
 import { motion } from 'motion/react';
 
-export const GiftUpload = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
+export const GiftUpload = () => {
+  const navigate = useNavigate();
   const extractionDate = new Date('2024-12-24T20:00:00');
   const [giftType, setGiftType] = useState('digital');
 
   return (
-    <DashboardLayout onNavigate={onNavigate}>
+    <DashboardLayout>
       <div className="max-w-3xl mx-auto space-y-6">
         
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="rounded-full" onClick={() => onNavigate('dashboard')}>
+            <Button variant="ghost" size="icon" className="rounded-full" onClick={() => navigate('/dashboard')}>
               <ArrowLeft className="h-6 w-6" />
             </Button>
             <div>

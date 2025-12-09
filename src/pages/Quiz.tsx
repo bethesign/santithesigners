@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -7,7 +8,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Clock, Trophy, ArrowLeft } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
-export const Quiz = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
+export const Quiz = () => {
+  const navigate = useNavigate();
   const [submitted, setSubmitted] = useState(false);
   const [answer, setAnswer] = useState('');
 
@@ -21,7 +23,7 @@ export const Quiz = ({ onNavigate }: { onNavigate: (page: string) => void }) => 
   };
 
   return (
-    <DashboardLayout onNavigate={onNavigate}>
+    <DashboardLayout>
        <div className="flex flex-col items-center justify-center min-h-[60vh] max-w-2xl mx-auto">
           
           <AnimatePresence mode="wait">
@@ -89,7 +91,7 @@ export const Quiz = ({ onNavigate }: { onNavigate: (page: string) => void }) => 
                         <span className="text-4xl font-bold text-brand-primary mt-2 block">5°</span>
                     </p>
 
-                    <Button variant="outline" onClick={() => onNavigate('dashboard')}>
+                    <Button variant="outline" onClick={() => navigate('/dashboard')}>
                         Torna alla Dashboard
                     </Button>
                 </motion.div>

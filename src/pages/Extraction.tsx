@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
@@ -6,7 +7,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Gift, User, Sparkles, ArrowRight } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
-export const Extraction = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
+export const Extraction = () => {
+  const navigate = useNavigate();
   const [turn, setTurn] = useState(1);
   const totalTurns = 15;
   const [isMyTurn, setIsMyTurn] = useState(false); // Demo toggle
@@ -33,7 +35,7 @@ export const Extraction = ({ onNavigate }: { onNavigate: (page: string) => void 
   };
 
   return (
-    <DashboardLayout onNavigate={onNavigate} isLive={true}>
+    <DashboardLayout isLive={true}>
       <div className="max-w-4xl mx-auto space-y-8 text-center">
         
         {/* Header Badge */}
@@ -101,7 +103,7 @@ export const Extraction = ({ onNavigate }: { onNavigate: (page: string) => void 
                             <p className="text-gray-800 italic">"Vorrei qualcosa di tecnologico o un libro di cucina..."</p>
                         </div>
 
-                        <Button onClick={() => onNavigate('dashboard')} variant="outline">
+                        <Button onClick={() => navigate('/dashboard')} variant="outline">
                             Torna alla Dashboard
                         </Button>
                     </motion.div>

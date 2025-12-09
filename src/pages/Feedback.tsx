@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -8,7 +9,8 @@ import { ArrowLeft, Star, Send } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '../components/ui/utils';
 
-export const Feedback = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
+export const Feedback = () => {
+  const navigate = useNavigate();
   const [rating, setRating] = useState(0);
   const [submitted, setSubmitted] = useState(false);
 
@@ -17,17 +19,17 @@ export const Feedback = ({ onNavigate }: { onNavigate: (page: string) => void })
     setSubmitted(true);
     // In a real app, send data to Supabase here
     setTimeout(() => {
-        onNavigate('dashboard');
+        navigate('/dashboard');
     }, 2000);
   };
 
   return (
-    <DashboardLayout onNavigate={onNavigate} userName="Mario">
+    <DashboardLayout userName="Mario">
       <div className="max-w-2xl mx-auto space-y-6">
         
         {/* Header */}
         <div className="flex items-center gap-2 mb-6">
-          <Button variant="ghost" size="icon" className="rounded-full" onClick={() => onNavigate('dashboard')}>
+          <Button variant="ghost" size="icon" className="rounded-full" onClick={() => navigate('/dashboard')}>
             <ArrowLeft className="h-6 w-6" />
           </Button>
           <h1 className="text-2xl font-bold">Feedback</h1>

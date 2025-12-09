@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AuthLayout } from '../components/layout/AuthLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -7,7 +8,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Check, X, MapPin, Lock } from 'lucide-react';
 import { cn } from '../components/ui/utils';
 
-export const FirstAccess = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
+export const FirstAccess = () => {
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -38,7 +40,7 @@ export const FirstAccess = ({ onNavigate }: { onNavigate: (page: string) => void
 
   const handleSave = () => {
     // Save logic here
-    onNavigate('dashboard');
+    navigate('/dashboard');
   };
 
   return (

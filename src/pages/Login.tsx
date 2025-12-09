@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AuthLayout } from '../components/layout/AuthLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -6,7 +7,8 @@ import { InputWithIcon } from '../components/ui/InputWithIcon';
 import { Mail, Lock, Eye, EyeOff, Gift } from 'lucide-react';
 import { motion } from 'motion/react';
 
-export const Login = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
+export const Login = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -29,7 +31,7 @@ export const Login = ({ onNavigate }: { onNavigate: (page: string) => void }) =>
         return;
      }
      // Success
-     onNavigate('dashboard');
+     navigate('/dashboard');
   };
 
   return (
@@ -135,8 +137,8 @@ export const Login = ({ onNavigate }: { onNavigate: (page: string) => void }) =>
             <div className="text-center text-sm text-gray-500 mt-4">
               <p>
                 Primo accesso?{' '}
-                <button 
-                    onClick={() => onNavigate('first-access')}
+                <button
+                    onClick={() => navigate('/first-access')}
                     className="font-semibold text-brand-primary hover:underline focus:outline-none"
                 >
                   Attiva il tuo account
