@@ -39,22 +39,27 @@ export const Login = () => {
         return;
       }
 
-      // Try to sign in with a dummy password to check if account exists
-      const { error: testError } = await supabase.auth.signInWithPassword({
-        email,
-        password: '__test__password__check__',
+      // Check if user has already created an account in Supabase Auth
+      // Using RPC function that runs server-side with elevated permissions
+      const { data: userExists, error: checkError } = await supabase.rpc('check_auth_user_exists', {
+        user_email: email
       });
 
-      // If user doesn't exist yet, redirect to first access
-      if (testError && testError.message.includes('Invalid login credentials')) {
-        // This could mean: no account, or wrong password
-        // We'll show password field and handle it there
-        setIsReturningUser(true);
-      } else {
-        // Some other error or success (shouldn't happen with dummy password)
-        setIsReturningUser(true);
+      if (checkError) {
+        console.error('Error checking auth user:', checkError);
+        setError('Errore durante la verifica. Riprova.');
+        setLoading(false);
+        return;
       }
 
+      if (!userExists) {
+        // New user - redirect to first access
+        navigate('/first-access', { state: { email } });
+        return;
+      }
+
+      // User exists in auth - show password field
+      setIsReturningUser(true);
       setLoading(false);
     } catch (err) {
       console.error('Error checking email:', err);
@@ -139,29 +144,27 @@ export const Login = () => {
                 animate={{ opacity: 1, height: 'auto' }}
                 className="space-y-2"
               >
-                <InputWithIcon
-                  icon={Lock}
-                  iconPosition="left"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  // Second icon for toggle is not supported by my simple InputWithIcon component properly yet
-                  // but I can add a button outside or hack it. 
-                  // Let's rely on standard UI pattern: Input with toggle inside right.
-                  // My InputWithIcon supports right icon but not both left and right easily unless I update it.
-                  // Wait, InputWithIcon takes `icon` and `iconPosition`. It doesn't take `rightIcon`.
-                  // I'll just use a relative wrapper here for the eye icon.
-                />
-                 <div className="flex justify-end -mt-8 mr-3 relative z-10">
-                    <button 
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="text-gray-400 hover:text-gray-600 focus:outline-none"
-                    >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                 </div>
+                <div className="relative">
+                  <InputWithIcon
+                    icon={Lock}
+                    iconPosition="left"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleLogin();
+                    }}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none z-10"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </motion.div>
             )}
 
@@ -183,18 +186,6 @@ export const Login = () => {
             >
               {loading ? 'Caricamento...' : (isReturningUser ? 'Accedi' : 'Continua')}
             </Button>
-
-            <div className="text-center text-sm text-gray-500 mt-4">
-              <p>
-                Primo accesso?{' '}
-                <button
-                    onClick={() => navigate('/first-access')}
-                    className="font-semibold text-brand-primary hover:underline focus:outline-none"
-                >
-                  Attiva il tuo account
-                </button>
-              </p>
-            </div>
           </CardContent>
         </Card>
       </motion.div>
