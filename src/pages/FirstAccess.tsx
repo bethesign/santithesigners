@@ -81,6 +81,12 @@ export const FirstAccess = () => {
     setError('');
 
     try {
+      // Development warning for test emails
+      if (process.env.NODE_ENV === 'development' && email.includes('@thesigners.it')) {
+        console.warn('⚠️ Test email detected (@thesigners.it). Use a real email address to avoid Supabase bounce issues.');
+        console.warn('See TESTING.md for guidelines on testing with valid emails.');
+      }
+
       // Create Supabase Auth user
       const { error: signUpError } = await signUp(email, password, {
         email,

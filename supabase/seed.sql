@@ -8,29 +8,26 @@
 -- Nota: Questi sono utenti pre-caricati nella tabella users
 -- Le password verranno create dagli utenti al primo accesso tramite l'app
 
--- Admin user
-INSERT INTO users (email, full_name, city, role) VALUES
-('admin@thesigners.it', 'Admin User', 'Milano', 'admin')
-ON CONFLICT (email) DO NOTHING;
+-- ============================================
+-- IMPORTANT: Only add REAL email addresses
+-- ============================================
+-- Adding fake/test emails will cause Supabase to send confirmation emails
+-- to non-existent addresses, triggering high bounce rates and restrictions.
+--
+-- For local testing: Use your own valid email addresses
+-- For production: Add real team member emails only
 
--- Utenti test (aggiungi qui le email reali del team)
-INSERT INTO users (email, full_name, city) VALUES
-('mario.rossi@thesigners.it', 'Mario Rossi', 'Milano'),
-('lucia.bianchi@thesigners.it', 'Lucia Bianchi', 'Roma'),
-('giovanni.verdi@thesigners.it', 'Giovanni Verdi', 'Milano'),
-('anna.neri@thesigners.it', 'Anna Neri', 'Torino'),
-('paolo.blu@thesigners.it', 'Paolo Blu', 'Milano'),
-('sara.rosa@thesigners.it', 'Sara Rosa', 'Roma'),
-('marco.gialli@thesigners.it', 'Marco Gialli', 'Napoli'),
-('elena.viola@thesigners.it', 'Elena Viola', 'Milano'),
-('luca.arancio@thesigners.it', 'Luca Arancio', 'Bologna'),
-('sofia.grigia@thesigners.it', 'Sofia Grigia', 'Firenze'),
-('alessia.verde@thesigners.it', 'Alessia Verde', 'Milano'),
-('francesco.marrone@thesigners.it', 'Francesco Marrone', 'Roma'),
-('chiara.azzurra@thesigners.it', 'Chiara Azzurra', 'Torino'),
-('davide.bianco@thesigners.it', 'Davide Bianco', 'Milano'),
-('giulia.nero@thesigners.it', 'Giulia Nero', 'Napoli')
-ON CONFLICT (email) DO NOTHING;
+-- Admin user (UPDATE WITH REAL EMAIL BEFORE PRODUCTION)
+-- INSERT INTO users (email, full_name, city, role) VALUES
+-- ('your-real-email@domain.com', 'Admin User', 'Milano', 'admin')
+-- ON CONFLICT (email) DO NOTHING;
+
+-- Team members (Add real emails when ready)
+-- Example:
+-- INSERT INTO users (email, full_name, city) VALUES
+-- ('real.person@company.com', 'Real Person', 'Milano'),
+-- ('another.person@company.com', 'Another Person', 'Roma')
+-- ON CONFLICT (email) DO NOTHING;
 
 -- ============================================
 -- CONFIGURAZIONE SETTINGS
