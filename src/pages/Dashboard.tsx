@@ -56,11 +56,6 @@ export const Dashboard = () => {
   const giftsDeadline = settings?.gifts_deadline ? new Date(settings.gifts_deadline) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   const extractionDate = settings?.draw_date ? new Date(settings.draw_date) : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
 
-  console.log('🎯 Dashboard render - gifts_deadline:', settings?.gifts_deadline);
-  console.log('🎯 Dashboard render - giftsDeadline object:', giftsDeadline);
-  console.log('🎯 Dashboard render - draw_date:', settings?.draw_date);
-  console.log('🎯 Dashboard render - extractionDate object:', extractionDate);
-
   return (
     <DashboardLayout userName={user?.full_name || 'Utente'} isLive={isLive} isAdmin={isAdmin}>
       <div className="flex flex-col gap-8">
