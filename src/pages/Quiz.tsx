@@ -13,6 +13,14 @@ import confetti from 'canvas-confetti';
 interface QuizQuestion {
   id: string;
   question_text: string;
+  question_type: 'open' | 'multiple_choice';
+  options?: QuizOption[];
+  correct_answer?: string;
+}
+
+interface QuizOption {
+  value: string;
+  text: string;
 }
 
 export const Quiz = () => {
@@ -21,10 +29,12 @@ export const Quiz = () => {
   const [question, setQuestion] = useState<QuizQuestion | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitted, setSubmitted] = useState(false);
+  const [started, setStarted] = useState(false);
   const [answer, setAnswer] = useState('');
   const [position, setPosition] = useState<number | null>(null);
   const [error, setError] = useState('');
-  const [startTime] = useState(Date.now());
+  const [startTime, setStartTime] = useState<number | null>(null);
+  const [elapsedTime, setElapsedTime] = useState(0);
 
   useEffect(() => {
     async function loadQuiz() {
@@ -76,13 +86,36 @@ export const Quiz = () => {
     loadQuiz();
   }, [user]);
 
+  // Timer effect quando il quiz è iniziato
+  useEffect(() => {
+    if (!started || submitted) return;
+
+    const interval = setInterval(() => {
+      if (startTime) {
+        setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [started, startTime, submitted]);
+
+  const handleStart = () => {
+    setStartTime(Date.now());
+    setStarted(true);
+  };
+
   const handleSubmit = async () => {
-    if (!answer.trim() || !question || !user) return;
+    if (!answer.trim() || !question || !user || !startTime) return;
 
     setLoading(true);
 
     try {
-      // Submit answer with precise timestamp
+      // Calcola se la risposta è corretta (per multiple choice)
+      const isCorrect = question.question_type === 'multiple_choice'
+        ? answer === question.correct_answer
+        : null; // Per domande aperte, null (da valutare manualmente)
+
+      // Submit answer with time and correctness
       const { error: insertError } = await supabase
         .from('quiz_answers')
         .insert({
@@ -90,6 +123,8 @@ export const Quiz = () => {
           question_id: question.id,
           answer: answer.trim(),
           answered_at: new Date().toISOString(),
+          time_elapsed: elapsedTime,
+          is_correct: isCorrect,
         });
 
       if (insertError) {
@@ -99,20 +134,18 @@ export const Quiz = () => {
         return;
       }
 
-      // Calculate position
-      const { data: answerData } = await supabase
+      // Calculate position based on correctness + time
+      // Logica: prima le risposte corrette ordinate per tempo, poi le errate ordinate per tempo
+      const { data: allAnswers } = await supabase
         .from('quiz_answers')
-        .select('answered_at')
-        .eq('user_id', user.id)
-        .single();
+        .select('user_id, is_correct, time_elapsed')
+        .eq('question_id', question.id)
+        .order('is_correct', { ascending: false, nullsFirst: false }) // corrette prima
+        .order('time_elapsed', { ascending: true }); // poi per tempo
 
-      if (answerData) {
-        const { count } = await supabase
-          .from('quiz_answers')
-          .select('*', { count: 'exact', head: true })
-          .lt('answered_at', answerData.answered_at);
-
-        setPosition((count ?? 0) + 1);
+      if (allAnswers) {
+        const userPosition = allAnswers.findIndex(a => a.user_id === user.id);
+        setPosition(userPosition + 1);
       }
 
       setSubmitted(true);
@@ -138,11 +171,11 @@ export const Quiz = () => {
 
   if (loading && !submitted) {
     return (
-      <DashboardLayout>
+      <DashboardLayout userName={user?.full_name} isAdmin={user?.role === 'admin'}>
         <div className="flex justify-center items-center min-h-[400px]">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-gray-600">Caricamento quiz...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+            <p className="text-white">Caricamento quiz...</p>
           </div>
         </div>
       </DashboardLayout>
@@ -151,10 +184,10 @@ export const Quiz = () => {
 
   if (error) {
     return (
-      <DashboardLayout>
+      <DashboardLayout userName={user?.full_name} isAdmin={user?.role === 'admin'}>
         <div className="bg-red-50 text-red-600 p-4 rounded-lg max-w-2xl mx-auto">
           {error}
-          <Button className="mt-4" onClick={() => navigate('/dashboard')}>
+          <Button className="mt-4 bg-[#226f54] text-white hover:bg-[#1a5640]" onClick={() => navigate('/dashboard')}>
             Torna alla Dashboard
           </Button>
         </div>
@@ -163,55 +196,110 @@ export const Quiz = () => {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout userName={user?.full_name} isAdmin={user?.role === 'admin'}>
        <div className="flex flex-col items-center justify-center min-h-[60vh] max-w-2xl mx-auto">
 
           <AnimatePresence mode="wait">
             {!submitted ? (
-                <motion.div 
+                <motion.div
                     key="question"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
                     className="w-full"
                 >
-                    <div className="text-center mb-8">
-                        <h1 className="text-3xl font-bold mb-2">Rispondi al Quiz! ⚡️</h1>
-                        <p className="text-gray-500">
-                            La velocità di risposta determinerà l'ordine di estrazione. Sii rapido!
-                        </p>
-                    </div>
+                    {!started ? (
+                      // Stato iniziale - Non iniziato
+                      <>
+                        <div className="text-center mb-8">
+                          <h1 className="text-3xl font-bold mb-2 text-white font-display">Quiz di Posizionamento ⚡️</h1>
+                          <p className="text-white/80">
+                            La correttezza della risposta determina la tua posizione.<br/>
+                            A parità di correttezza, fa fede il tempo impiegato. Sii veloce e preciso!
+                          </p>
+                        </div>
 
-                    <Card className="shadow-xl border-t-4 border-t-brand-accent">
-                        <CardContent className="pt-8 pb-8 flex flex-col items-center gap-6">
-                            
-                            {/* Timer (Visual) */}
-                            <div className="flex items-center gap-2 text-2xl font-mono font-bold text-brand-secondary">
-                                <Clock className="h-6 w-6 animate-pulse" />
-                                <span>00:12:45</span>
+                        <Card className="shadow-xl bg-white border-border/50 border-t-4 border-t-[#da2c38]">
+                          <CardContent className="pt-8 pb-8 flex flex-col items-center gap-6">
+                            <div className="text-center">
+                              <h2 className="text-2xl font-bold text-[#da2c38] mb-4">Sei pronto?</h2>
+                              <p className="text-gray-700 mb-6">
+                                Quando premerai "Inizia", il timer partirà e dovrai rispondere alla domanda il più velocemente possibile.
+                              </p>
+                              <Button
+                                size="lg"
+                                className="text-lg bg-[#226f54] text-white hover:bg-[#1a5640] px-12"
+                                onClick={handleStart}
+                              >
+                                Inizia Quiz
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </>
+                    ) : (
+                      // Quiz iniziato - Mostra domanda e timer
+                      <>
+                        <div className="text-center mb-8">
+                          <h1 className="text-3xl font-bold mb-2 text-white font-display">Rispondi al Quiz! ⚡️</h1>
+                          <p className="text-white/80">
+                            Risposte corrette hanno priorità. A parità, vince il più veloce!
+                          </p>
+                        </div>
+
+                        <Card className="shadow-xl bg-white border-border/50 border-t-4 border-t-[#da2c38]">
+                          <CardContent className="pt-8 pb-8 flex flex-col items-center gap-6">
+
+                            {/* Timer reale */}
+                            <div className="flex items-center gap-2 text-2xl font-mono font-bold text-[#da2c38]">
+                              <Clock className="h-6 w-6 animate-pulse" />
+                              <span>{Math.floor(elapsedTime / 60).toString().padStart(2, '0')}:{(elapsedTime % 60).toString().padStart(2, '0')}</span>
                             </div>
 
-                            <h2 className="text-xl font-bold text-center">
-                                {question?.question_text || 'Caricamento domanda...'}
+                            <h2 className="text-xl font-bold text-center text-[#da2c38]">
+                              {question?.question_text || 'Caricamento domanda...'}
                             </h2>
 
-                            <Textarea 
-                                placeholder="Scrivi la tua risposta qui..." 
+                            {question?.question_type === 'multiple_choice' && question.options ? (
+                              // Domanda a scelta multipla
+                              <div className="w-full space-y-3">
+                                {question.options.map((option) => (
+                                  <button
+                                    key={option.value}
+                                    onClick={() => setAnswer(option.value)}
+                                    className={`w-full p-4 rounded-lg border-2 text-left transition-all ${
+                                      answer === option.value
+                                        ? 'border-[#226f54] bg-[#226f54]/10'
+                                        : 'border-gray-200 hover:border-gray-300'
+                                    }`}
+                                  >
+                                    <span className="font-bold mr-2">{option.value}.</span>
+                                    <span className="text-gray-800">{option.text}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            ) : (
+                              // Domanda aperta
+                              <Textarea
+                                placeholder="Scrivi la tua risposta qui..."
                                 className="min-h-[120px] text-lg bg-gray-50"
                                 value={answer}
                                 onChange={(e) => setAnswer(e.target.value)}
-                            />
+                              />
+                            )}
 
                             <Button
-                                size="lg"
-                                className="w-full text-lg shadow-lg shadow-brand-primary/20"
-                                onClick={handleSubmit}
-                                disabled={!answer.trim() || loading}
+                              size="lg"
+                              className="w-full text-lg bg-[#226f54] text-white hover:bg-[#1a5640]"
+                              onClick={handleSubmit}
+                              disabled={!answer.trim() || loading}
                             >
-                                {loading ? 'Invio...' : 'Invia Risposta'}
+                              {loading ? 'Invio...' : 'Invia Risposta'}
                             </Button>
-                        </CardContent>
-                    </Card>
+                          </CardContent>
+                        </Card>
+                      </>
+                    )}
                 </motion.div>
             ) : (
                 <motion.div 
@@ -224,19 +312,19 @@ export const Quiz = () => {
                         <Trophy className="h-12 w-12" />
                     </div>
                     
-                    <h1 className="text-3xl font-bold mb-4 text-green-700">Risposta inviata!</h1>
-                    <p className="text-xl text-gray-600 mb-8">
+                    <h1 className="text-3xl font-bold mb-4 text-white font-display">Risposta inviata!</h1>
+                    <p className="text-xl text-white mb-8">
                         Ti sei posizionato provvisoriamente:
                         <br/>
-                        <span className="text-4xl font-bold text-brand-primary mt-2 block">
+                        <span className="text-4xl font-bold text-white mt-2 block">
                           {position ? `${position}°` : '...'}
                         </span>
                     </p>
-                    <p className="text-sm text-gray-500 mb-4">
+                    <p className="text-sm text-white/80 mb-4">
                       Redirect automatico alla dashboard...
                     </p>
 
-                    <Button variant="outline" onClick={() => navigate('/dashboard')}>
+                    <Button className="bg-white text-[#226f54] hover:bg-white/90" onClick={() => navigate('/dashboard')}>
                         Torna alla Dashboard
                     </Button>
                 </motion.div>

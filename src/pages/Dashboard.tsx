@@ -1,24 +1,40 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUserDashboard } from '../hooks/useUserDashboard';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
-import { DashboardCard } from '../components/dashboard/DashboardCard';
-import { Countdown } from '../components/dashboard/Countdown';
-import { Button } from '../components/ui/button';
-import { Gift, ScrollText, Timer, PartyPopper, CheckCircle } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
+import { EntryWidget } from '../components/dashboard/widgets/EntryWidget';
+import { QuizWidget } from '../components/dashboard/widgets/QuizWidget';
+import { PreEventWidget } from '../components/dashboard/widgets/PreEventWidget';
+import { LiveWidget } from '../components/dashboard/widgets/LiveWidget';
 import { motion } from 'framer-motion';
 
 export const Dashboard = () => {
   const navigate = useNavigate();
-  const { user, gift, quizAnswer, receivedGift, settings, myTurn, loading, error } = useUserDashboard();
+  const { user, gift, quizAnswer, settings, loading, error } = useUserDashboard();
+
+  // Determine current stage based on user progress and settings
+  const currentStage = useMemo(() => {
+    // Stage 1: ENTRY - User hasn't uploaded gift yet
+    if (!gift) return 'ENTRY';
+
+    // Stage 2: QUIZ - Gift uploaded but quiz not completed
+    if (!quizAnswer) return 'QUIZ';
+
+    // Stage 3: PRE_EVENT - Waiting for extraction to start
+    if (!settings?.draw_enabled) return 'PRE_EVENT';
+
+    // Stage 4: LIVE - Extraction is live
+    return 'LIVE';
+  }, [gift, quizAnswer, settings]);
 
   if (loading) {
     return (
-      <DashboardLayout userName="..." isLive={false}>
+      <DashboardLayout userName="..." isLive={false} isAdmin={false}>
         <div className="flex justify-center items-center min-h-[400px]">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-gray-600">Caricamento dashboard...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+            <p className="text-white">Caricamento dashboard...</p>
           </div>
         </div>
       </DashboardLayout>
@@ -27,7 +43,7 @@ export const Dashboard = () => {
 
   if (error) {
     return (
-      <DashboardLayout userName={user?.full_name || 'Utente'} isLive={false}>
+      <DashboardLayout userName={user?.full_name || 'Utente'} isLive={false} isAdmin={user?.role === 'admin'}>
         <div className="bg-red-50 text-red-600 p-4 rounded-lg">
           Errore: {error}
         </div>
@@ -35,134 +51,71 @@ export const Dashboard = () => {
     );
   }
 
-  const extractionDate = settings?.gifts_deadline ? new Date(settings.gifts_deadline) : null;
-  const isLive = settings?.draw_started || false;
-  const isDrawEnabled = settings?.draw_enabled || false;
+  const isLive = settings?.draw_enabled || false;
+  const isAdmin = user?.role === 'admin';
+  const giftsDeadline = settings?.gifts_deadline ? new Date(settings.gifts_deadline) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const extractionDate = settings?.draw_date ? new Date(settings.draw_date) : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
 
   return (
-    <DashboardLayout userName={user?.full_name || 'Utente'} isLive={isLive}>
+    <DashboardLayout userName={user?.full_name || 'Utente'} isLive={isLive} isAdmin={isAdmin}>
       <div className="flex flex-col gap-8">
-        
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="text-center md:text-left">
-            <h1 className="text-3xl font-bold text-gray-900">Ciao, {user?.full_name?.split(' ')[0]}! 👋</h1>
-            <p className="text-gray-500 mt-2">Ti diamo il benvenuto nel tuo pannello di controllo.</p>
-          </div>
-          {extractionDate && !isDrawEnabled && (
-            <div className="bg-white p-4 rounded-xl shadow-sm border">
-              <p className="text-center text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wide">Deadline regali</p>
-              <Countdown targetDate={extractionDate} />
-            </div>
-          )}
+
+        {/* Welcome Message - Matching Figma */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center space-y-2"
+        >
+          <h2 className="text-3xl font-bold text-slate-100">
+            Ciao thesigner! <br/>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-amber-500 font-[Spectral] italic">
+              È il momento di dirci cosa porti in dono
+            </span>
+          </h2>
+        </motion.div>
+
+        {/* Widgets Area */}
+        <div className="min-h-[400px]">
+          <AnimatePresence mode="wait">
+
+            {/* Stage 1: ENTRY */}
+            {currentStage === 'ENTRY' && (
+              <EntryWidget
+                targetDate={giftsDeadline}
+                onInsertGift={() => navigate('/dashboard/gift')}
+              />
+            )}
+
+            {/* Stage 2: QUIZ */}
+            {currentStage === 'QUIZ' && (
+              <QuizWidget
+                onStartQuiz={() => navigate('/quiz')}
+              />
+            )}
+
+            {/* Stage 3: PRE_EVENT */}
+            {currentStage === 'PRE_EVENT' && (
+              <PreEventWidget
+                targetDate={extractionDate}
+              />
+            )}
+
+            {/* Stage 4: LIVE */}
+            {currentStage === 'LIVE' && (
+              <LiveWidget
+                onEnterLive={() => navigate('/extraction')}
+              />
+            )}
+
+          </AnimatePresence>
         </div>
 
-        {/* Cards Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
-          {/* Left Column */}
-          <div className="space-y-6">
-            <DashboardCard
-              title="Il Tuo Regalo"
-              icon={Gift}
-              status={gift ? 'completed' : 'pending'}
-              actionLabel={gift ? "Modifica Regalo" : "Carica Regalo"}
-              onClick={() => navigate('/dashboard/gift')}
-            >
-              {!gift ? (
-                <p>Non hai ancora caricato il regalo che farai. Caricalo per partecipare all'estrazione!</p>
-              ) : (
-                <div className="flex items-center gap-4 bg-gray-50 p-3 rounded-lg border border-dashed">
-                  <div className="h-12 w-12 bg-gray-200 rounded-md flex items-center justify-center shrink-0">
-                    <Gift className="h-6 w-6 text-gray-400" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm">{gift.title}</p>
-                    <p className="text-xs text-gray-500">
-                      {gift.type === 'digital' ? '🌐 Digitale' : '📦 Fisico'} • {new Date(gift.created_at).toLocaleDateString('it-IT')}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </DashboardCard>
-
-            <DashboardCard
-              title="Quiz di Posizionamento"
-              icon={ScrollText}
-              status={quizAnswer ? 'completed' : 'pending'}
-              actionLabel={quizAnswer ? "Già completato" : "Inizia Quiz"}
-              disabled={!!quizAnswer}
-              onClick={() => !quizAnswer && navigate('/quiz')}
-            >
-              {!quizAnswer ? (
-                <p>Rispondi al quiz per determinare l'ordine di estrazione. Sii veloce!</p>
-              ) : (
-                <div className="flex items-center justify-between bg-blue-50 p-3 rounded-lg text-blue-800">
-                  <span className="text-sm font-medium">Quiz completato!</span>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold">Posizione: #{quizAnswer.position}</span>
-                  </div>
-                </div>
-              )}
-            </DashboardCard>
+        {/* DEV CONTROLS - Remove in production */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="fixed bottom-4 right-4 z-50 flex gap-2 bg-black/80 p-2 rounded-lg backdrop-blur text-xs">
+            <div className="text-white px-2 py-1">Stage: {currentStage}</div>
           </div>
-
-          {/* Right Column */}
-          <div className="space-y-6">
-            <DashboardCard
-              title="Regalo Ricevuto"
-              icon={PartyPopper}
-              status={receivedGift ? 'completed' : 'locked'}
-              actionLabel={receivedGift ? "Vedi Regalo" : "In attesa..."}
-              disabled={!receivedGift}
-              onClick={() => receivedGift && navigate('/dashboard/gift-received')}
-            >
-               {!receivedGift ? (
-                <p className="text-gray-400 italic">Il tuo regalo apparirà qui dopo l'estrazione.</p>
-              ) : (
-                <div className="flex items-center gap-3">
-                   <div className="h-10 w-10 bg-green-100 rounded-full flex items-center justify-center text-green-600">
-                      <Gift className="h-5 w-5" />
-                   </div>
-                   <div>
-                     <p className="font-medium text-green-700">Hai ricevuto un regalo!</p>
-                     <p className="text-xs text-gray-500">Da: {receivedGift.giver_name}</p>
-                   </div>
-                </div>
-              )}
-            </DashboardCard>
-
-            <DashboardCard
-              title="Estrazione Live"
-              icon={Timer}
-              status={isLive ? 'active' : (isDrawEnabled ? 'pending' : 'locked')}
-              actionLabel={isLive ? "Vai all'Estrazione" : "Non ancora iniziata"}
-              disabled={!isDrawEnabled}
-              onClick={() => isDrawEnabled && navigate('/extraction')}
-            >
-              {!isDrawEnabled ? (
-                <p className="text-gray-500">L'evento non è ancora iniziato.</p>
-              ) : isLive ? (
-                <div className="text-center py-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-100 text-red-600 text-sm font-bold animate-pulse">
-                    <span className="h-2 w-2 bg-red-600 rounded-full" />
-                    IN CORSO
-                  </div>
-                  {myTurn && (
-                    <p className="mt-2 text-sm">
-                      {myTurn.revealed_at
-                        ? '✅ Hai già estratto!'
-                        : `Sei il turno #${myTurn.order_position}`}
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <p className="text-gray-500">In attesa di inizio...</p>
-              )}
-            </DashboardCard>
-          </div>
-        </div>
-
+        )}
 
       </div>
     </DashboardLayout>

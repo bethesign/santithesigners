@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, X, MapPin, Lock } from 'lucide-react';
+import { Check, X, MapPin, Lock, Eye, EyeOff } from 'lucide-react';
 import { cn } from '../components/ui/utils';
 
 export const FirstAccess = () => {
@@ -21,6 +21,8 @@ export const FirstAccess = () => {
   const [error, setError] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [userName, setUserName] = useState('');
 
@@ -40,17 +42,21 @@ export const FirstAccess = () => {
       return;
     }
 
-    // Fetch user data to get name
+    // Fetch user data to get name and city
     async function fetchUserData() {
       const { data, error } = await supabase
         .from('users')
-        .select('id, full_name')
+        .select('id, full_name, city')
         .eq('email', email)
-        .single();
+        .maybeSingle();
 
       if (data) {
         setUserId(data.id);
         setUserName(data.full_name);
+        // Pre-populate city from users table
+        if (data.city) {
+          setAddress(prev => ({ ...prev, citta: data.city }));
+        }
       }
     }
 
@@ -144,12 +150,12 @@ export const FirstAccess = () => {
             <div className={cn("h-2 w-16 rounded-full transition-colors", step >= 2 ? "bg-brand-secondary" : "bg-gray-200")} />
         </div>
 
-        <Card className="border-border/50 shadow-xl">
+        <Card className="border-border/50 shadow-xl bg-white">
           <CardHeader>
-            <CardTitle className="text-2xl font-bold text-center">
+            <CardTitle className="text-2xl font-bold text-center text-[#da2c38]">
                 {step === 1 ? "Imposta Password" : "Dove spediamo?"}
             </CardTitle>
-            <p className="text-center text-gray-500">
+            <p className="text-center text-gray-800">
                 Ciao, {userName || 'Utente'}! {step === 1 ? "Iniziamo configurando il tuo account." : "Per i regali fisici."}
             </p>
           </CardHeader>
@@ -164,22 +170,40 @@ export const FirstAccess = () => {
                   className="space-y-4"
                 >
                     <div className="space-y-2">
-                        <label className="text-sm font-medium">Nuova Password</label>
-                        <Input 
-                            type="password" 
-                            value={password} 
-                            onChange={(e) => setPassword(e.target.value)} 
-                            className="pl-4"
-                        />
+                        <label className="text-sm font-medium text-gray-800">Nuova Password</label>
+                        <div className="relative">
+                          <Input
+                              type={showPassword ? "text" : "password"}
+                              value={password}
+                              onChange={(e) => setPassword(e.target.value)}
+                              className="pr-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                          >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
                     </div>
                     <div className="space-y-2">
-                        <label className="text-sm font-medium">Conferma Password</label>
-                        <Input 
-                            type="password" 
-                            value={confirmPassword} 
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            className="pl-4"
-                        />
+                        <label className="text-sm font-medium text-gray-800">Conferma Password</label>
+                        <div className="relative">
+                          <Input
+                              type={showConfirmPassword ? "text" : "password"}
+                              value={confirmPassword}
+                              onChange={(e) => setConfirmPassword(e.target.value)}
+                              className="pr-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                          >
+                            {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
                     </div>
 
                     {/* Requirements */}
@@ -198,8 +222,7 @@ export const FirstAccess = () => {
                     )}
 
                     <Button
-                        className="w-full mt-4"
-                        variant="secondary"
+                        className="w-full mt-4 bg-[#226f54] text-white hover:bg-[#1a5640]"
                         disabled={!isPasswordValid || loading}
                         onClick={handleNext}
                     >
@@ -239,8 +262,7 @@ export const FirstAccess = () => {
                             Salta
                         </Button>
                         <Button
-                            variant="secondary"
-                            className="flex-1"
+                            className="flex-1 bg-[#226f54] text-white hover:bg-[#1a5640]"
                             onClick={handleSave}
                             disabled={loading}
                         >

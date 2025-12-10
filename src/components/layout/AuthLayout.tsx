@@ -47,7 +47,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
   });
 
   return (
-    <div className="flex min-h-screen w-full flex-col lg:flex-row">
+    <div className="flex min-h-screen w-full flex-col lg:flex-row overflow-x-hidden">
       {/* Decorative Left Side */}
       <div className="relative flex h-64 w-full flex-col items-center justify-center overflow-hidden bg-[radial-gradient(ellipse_at_center,_var(--brand-primary-light),_var(--brand-primary-dark))] lg:h-auto lg:w-1/2">
         {/* Christmas Emoji Particles */}

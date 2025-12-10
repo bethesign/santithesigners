@@ -1,148 +1,296 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { DashboardLayout } from '../components/layout/DashboardLayout';
+import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
-import { Card } from '../components/ui/card';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Gift, User, Sparkles, ArrowRight } from 'lucide-react';
+import { Sparkles, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { useInteractiveExtraction } from '../hooks/useInteractiveExtraction';
+import { GiftBox } from '../components/extraction/GiftBox';
+import { Snow } from '../components/extraction/Snow';
+import { assignColorsToGifts } from '../utils/giftColors';
 
 export const Extraction = () => {
   const navigate = useNavigate();
-  const [turn, setTurn] = useState(1);
-  const totalTurns = 15;
-  const [isMyTurn, setIsMyTurn] = useState(false); // Demo toggle
-  const [revealed, setRevealed] = useState(false);
-  const [assignments, setAssignments] = useState<{giver: string, receiver: string}[]>([]);
+  const { user } = useAuth();
+  const {
+    currentTurn,
+    isMyTurn,
+    myTurn,
+    allTurns,
+    availableGifts,
+    loading,
+    error,
+    chooseGift
+  } = useInteractiveExtraction(user?.id);
 
-  // Demo effect to simulate turns
-  useEffect(() => {
-    // Just for demo, let's say after 3 seconds it becomes my turn
-    const timer = setTimeout(() => setIsMyTurn(true), 2000);
-    return () => clearTimeout(timer);
-  }, []);
+  const [choosing, setChoosing] = useState(false);
+  const [revealedGift, setRevealedGift] = useState<any>(null);
 
-  const handleReveal = () => {
-    setRevealed(true);
-    confetti({
-      particleCount: 150,
-      spread: 100,
-      origin: { y: 0.6 },
-      colors: ['#ff6b6b', '#4a9960', '#ffd700']
-    });
-    // Add to assignments list
-    setAssignments(prev => [{giver: 'Mario (Tu)', receiver: 'Luigi'}, ...prev]);
+  // Assign colors to gifts
+  const giftsWithColors = useMemo(() => assignColorsToGifts(availableGifts), [availableGifts]);
+
+  const handleChooseKeyword = async (giftId: string) => {
+    setChoosing(true);
+    const result = await chooseGift(giftId);
+
+    if (result.success) {
+      // Find the chosen gift
+      const chosenGift = giftsWithColors.find(g => g.id === giftId);
+      setRevealedGift(chosenGift);
+
+      // Confetti!
+      confetti({
+        particleCount: 150,
+        spread: 100,
+        origin: { y: 0.6 },
+        colors: ['#226f54', '#da2c38', '#ffd700']
+      });
+    } else {
+      alert(result.message);
+    }
+
+    setChoosing(false);
   };
 
-  return (
-    <DashboardLayout isLive={true}>
-      <div className="max-w-4xl mx-auto space-y-8 text-center">
-        
-        {/* Header Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm border text-sm font-bold text-gray-700">
-           <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-           LIVE EXTRACTION • Turno {turn}/{totalTurns}
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 text-slate-100 flex items-center justify-center">
+        <Snow />
+        <div className="text-center relative z-10">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-white">Caricamento estrazione...</p>
         </div>
-
-        {/* Main Interaction Area */}
-        <div className="min-h-[400px] flex items-center justify-center">
-            <AnimatePresence mode="wait">
-                {!revealed ? (
-                    <motion.div
-                        key="waiting"
-                        initial={{ scale: 0.9, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 1.1, opacity: 0 }}
-                        className="flex flex-col items-center"
-                    >
-                        {isMyTurn ? (
-                            <>
-                                <motion.div 
-                                    animate={{ 
-                                        boxShadow: ["0px 0px 0px 0px rgba(255,107,107,0)", "0px 0px 20px 10px rgba(255,107,107,0.3)", "0px 0px 0px 0px rgba(255,107,107,0)"] 
-                                    }}
-                                    transition={{ duration: 2, repeat: Infinity }}
-                                    className="rounded-full"
-                                >
-                                    <Button 
-                                        className="h-48 w-48 rounded-full text-2xl font-bold bg-gradient-to-br from-brand-secondary to-red-500 shadow-2xl hover:scale-105 transition-transform"
-                                        onClick={handleReveal}
-                                    >
-                                        SCOPRI<br/>A CHI FAI<br/>IL REGALO
-                                    </Button>
-                                </motion.div>
-                                <p className="mt-8 text-xl font-medium animate-bounce text-gray-600">È il tuo turno! Clicca il pulsante!</p>
-                            </>
-                        ) : (
-                            <div className="flex flex-col items-center">
-                                <div className="relative">
-                                    <div className="h-32 w-32 rounded-full border-4 border-gray-100 flex items-center justify-center bg-white shadow-lg z-10 relative">
-                                        <User className="h-12 w-12 text-gray-300" />
-                                    </div>
-                                    <div className="absolute inset-0 border-4 border-t-brand-primary rounded-full animate-spin" />
-                                </div>
-                                <h2 className="text-2xl font-bold mt-6">Tocca a Giulia...</h2>
-                                <p className="text-gray-500">Sta effettuando l'estrazione</p>
-                            </div>
-                        )}
-                    </motion.div>
-                ) : (
-                    <motion.div
-                        key="revealed"
-                        initial={{ scale: 0.5, opacity: 0, rotate: -10 }}
-                        animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                        className="bg-white p-12 rounded-3xl shadow-2xl border-4 border-brand-gold relative overflow-hidden"
-                    >
-                        <div className="absolute top-0 left-0 w-full h-2 bg-brand-gold" />
-                        <Sparkles className="h-12 w-12 text-brand-gold mx-auto mb-4 animate-spin-slow" />
-                        <h2 className="text-gray-500 font-medium mb-2">Devi fare il regalo a...</h2>
-                        <h1 className="text-5xl font-black text-brand-primary-dark mb-6">LUIGI</h1>
-                        
-                        <div className="bg-gray-50 rounded-xl p-4 mb-6 text-left">
-                            <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">I suoi desideri:</p>
-                            <p className="text-gray-800 italic">"Vorrei qualcosa di tecnologico o un libro di cucina..."</p>
-                        </div>
-
-                        <Button onClick={() => navigate('/dashboard')} variant="outline">
-                            Torna alla Dashboard
-                        </Button>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </div>
-
-        {/* Assignments Feed */}
-        <div className="max-w-2xl mx-auto mt-12 border-t pt-8">
-            <h3 className="text-gray-400 font-bold uppercase tracking-widest text-sm mb-6">Abbinamenti Rivelati</h3>
-            <div className="space-y-3">
-                {assignments.map((assign, idx) => (
-                    <motion.div 
-                        key={idx}
-                        initial={{ x: -20, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        className="flex items-center justify-between bg-white p-4 rounded-xl shadow-sm border"
-                    >
-                        <div className="flex items-center gap-3">
-                            <div className="font-bold text-gray-900">{assign.giver}</div>
-                            <ArrowRight className="h-4 w-4 text-gray-300" />
-                            <div className="font-bold text-brand-secondary">{assign.receiver}</div>
-                        </div>
-                        <span className="text-xs font-bold bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">APPENA RIVELATO</span>
-                    </motion.div>
-                ))}
-                {/* Fake previous assignments */}
-                <div className="flex items-center justify-between bg-white/50 p-4 rounded-xl border border-dashed text-gray-500">
-                    <div className="flex items-center gap-3">
-                        <div className="font-medium">Marco</div>
-                        <ArrowRight className="h-4 w-4" />
-                        <div className="font-medium">Sofia</div>
-                    </div>
-                    <span className="text-xs">2 min fa</span>
-                </div>
-            </div>
-        </div>
-
       </div>
-    </DashboardLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 text-slate-100 flex items-center justify-center p-4">
+        <Snow />
+        <div className="bg-red-50 text-red-600 p-4 rounded-lg max-w-2xl relative z-10">
+          {error}
+        </div>
+      </div>
+    );
+  }
+
+  // If I've already extracted, show the gift
+  if (myTurn?.revealed_at && myTurn?.gift_id) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 text-slate-100 flex items-center justify-center p-4">
+        <Snow />
+        <div className="max-w-2xl mx-auto text-center relative z-10">
+          <motion.div
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white p-12 rounded-3xl shadow-2xl"
+          >
+            <Sparkles className="h-16 w-16 text-[#ffd700] mx-auto mb-4" />
+            <h1 className="text-3xl font-bold text-[#226f54] mb-4">
+              Hai già scelto il tuo regalo!
+            </h1>
+            <p className="text-gray-600 mb-8">
+              Puoi vedere i dettagli nella dashboard
+            </p>
+            <Button
+              className="bg-[#226f54] text-white hover:bg-[#1a5640]"
+              onClick={() => navigate('/dashboard')}
+            >
+              Torna alla Dashboard
+            </Button>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 text-slate-100 font-sans overflow-x-hidden selection:bg-red-500 selection:text-white">
+      <Snow />
+
+      {/* Header */}
+      <header className="relative z-10 py-8 px-4 text-center">
+        <motion.div
+          initial={{ y: -50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="inline-block"
+        >
+          <h1 className="text-4xl md:text-6xl font-extrabold font-display tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-yellow-200 to-red-400 drop-shadow-sm mb-2" style={{ fontWeight: 800 }}>
+            SECRET SANTA
+          </h1>
+          <div className="h-1 w-full bg-gradient-to-r from-transparent via-yellow-400 to-transparent opacity-50" />
+        </motion.div>
+
+        <AnimatePresence mode="wait">
+          {currentTurn ? (
+            <motion.div
+              key={currentTurn.id}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              className="mt-6 flex flex-col items-center gap-2"
+            >
+              <span className="text-sm uppercase tracking-widest text-slate-400">Tocca a</span>
+              <div className="bg-white/10 backdrop-blur-md px-8 py-3 rounded-full border border-white/20 shadow-lg">
+                <span className="text-2xl md:text-3xl font-bold text-yellow-300">
+                  {isMyTurn ? 'Te!' : currentTurn.user.full_name}
+                </span>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mt-6"
+            >
+              <span className="text-2xl text-red-300 font-bold">Estrazione Completata! 🎄</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </header>
+
+      {/* Main Grid */}
+      <main className="relative z-10 max-w-6xl mx-auto px-4 pb-20">
+        <motion.div
+          layout
+          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 md:gap-8"
+        >
+          <AnimatePresence>
+            {giftsWithColors.map((gift) => (
+              <motion.div
+                key={gift.id}
+                layout
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0, transition: { duration: 0.3 } }}
+              >
+                {/* Only render if not the currently selected one (to prevent duplication during layoutId transition) */}
+                {revealedGift?.id !== gift.id && (
+                  <GiftBox
+                    gift={gift}
+                    onClick={() => isMyTurn && !choosing && handleChooseKeyword(gift.id)}
+                    isMyTurn={isMyTurn}
+                    className="w-full"
+                  />
+                )}
+                {/* Placeholder to keep grid space while animating out */}
+                {revealedGift?.id === gift.id && <div className="w-full aspect-square bg-transparent" />}
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </motion.div>
+      </main>
+
+      {/* Reveal Overlay / Modal */}
+      <AnimatePresence>
+        {revealedGift && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          >
+            <div className="relative w-full max-w-lg flex flex-col items-center">
+
+              {/* The "Hero" Gift */}
+              <div className="relative w-64 h-64 md:w-96 md:h-96 mb-8">
+                <GiftBox
+                  gift={revealedGift}
+                  isOpen={true}
+                  isMyTurn={true}
+                  className="w-full h-full text-2xl"
+                />
+              </div>
+
+              {/* Reveal Content */}
+              <motion.div
+                initial={{ opacity: 0, y: 50, scale: 0.8 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ delay: 0.5, type: "spring", bounce: 0.5 }}
+                className="bg-white text-slate-900 p-8 rounded-2xl shadow-2xl text-center w-full max-w-md border-4 border-yellow-400"
+              >
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.7 }}
+                  className="mb-4 inline-block text-yellow-500"
+                >
+                  <Sparkles size={48} />
+                </motion.div>
+
+                <h2 className="text-lg uppercase text-slate-500 font-bold mb-2">Hai scelto</h2>
+                <div className="text-sm text-slate-400 mb-2 uppercase tracking-wider">
+                  Keyword: <strong className="text-[#226f54]">{revealedGift.keyword}</strong>
+                </div>
+                <div className="text-3xl md:text-5xl font-black text-[#226f54] mb-4 leading-tight">
+                  {revealedGift.title}
+                </div>
+
+                <div className="bg-gray-50 rounded-xl p-4 mb-4 text-left">
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
+                    Tipo regalo:
+                  </p>
+                  <p className="text-gray-800 text-sm">
+                    {revealedGift.type === 'digital' ? '💻 Digitale' : '📦 Fisico'}
+                  </p>
+                </div>
+
+                {revealedGift.message && (
+                  <div className="bg-blue-50 rounded-xl p-4 mb-6 text-left">
+                    <p className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">
+                      Messaggio:
+                    </p>
+                    <p className="text-gray-800 text-sm italic">"{revealedGift.message}"</p>
+                  </div>
+                )}
+
+                <Button
+                  onClick={() => navigate('/dashboard')}
+                  className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold text-xl hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 group"
+                >
+                  Torna alla Dashboard
+                  <motion.span
+                    animate={{ x: [0, 5, 0] }}
+                    transition={{ repeat: Infinity, duration: 1.5 }}
+                  >
+                    →
+                  </motion.span>
+                </Button>
+              </motion.div>
+            </div>
+
+            {/* Confetti Effect */}
+            <div className="fixed inset-0 pointer-events-none overflow-hidden">
+              {[...Array(20)].map((_, i) => (
+                <motion.div
+                  key={`confetti-${i}`}
+                  className={`absolute w-3 h-3 rounded-sm ${['bg-red-500', 'bg-yellow-500', 'bg-green-500', 'bg-blue-500'][i % 4]}`}
+                  initial={{
+                    x: "50vw",
+                    y: "50vh",
+                    scale: 0
+                  }}
+                  animate={{
+                    x: `calc(50vw + ${(Math.random() - 0.5) * 100}vw)`,
+                    y: `calc(50vh + ${(Math.random() - 0.5) * 100}vh)`,
+                    rotate: Math.random() * 360,
+                    scale: 1,
+                    opacity: [1, 1, 0]
+                  }}
+                  transition={{ duration: 2, ease: "easeOut" }}
+                />
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Footer Info */}
+      <div className="fixed bottom-4 left-0 right-0 text-center text-slate-500 text-sm z-0 pointer-events-none">
+        Pacchi rimanenti: {giftsWithColors.length}
+      </div>
+    </div>
   );
 };

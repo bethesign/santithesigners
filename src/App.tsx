@@ -9,6 +9,7 @@ import { Dashboard } from './pages/Dashboard';
 import { GiftUpload } from './pages/GiftUpload';
 import { Quiz } from './pages/Quiz';
 import { Extraction } from './pages/Extraction';
+import { ExtractionDemo } from './pages/ExtractionDemo';
 import { GiftReceived } from './pages/GiftReceived';
 import { Feedback } from './pages/Feedback';
 import { Admin } from './pages/Admin';
@@ -63,6 +64,10 @@ function App() {
                 <Extraction />
               </ProtectedRoute>
             }
+          />
+          <Route
+            path="/extraction-demo"
+            element={<ExtractionDemo />}
           />
           <Route
             path="/feedback"

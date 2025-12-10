@@ -33,15 +33,15 @@ export const Countdown = ({ targetDate, className }: { targetDate: Date, classNa
 
   const Item = ({ value, label }: { value: number, label: string }) => (
     <div className="flex flex-col items-center mx-2">
-      <span className="text-2xl font-bold font-mono bg-white/50 backdrop-blur-sm rounded-lg px-2 py-1 min-w-[3rem] text-center shadow-sm text-brand-primary-dark">
+      <span className="text-2xl font-bold font-mono bg-white rounded-lg px-3 py-2 min-w-[3rem] text-center shadow-md text-[#da2c38]">
         {value < 10 ? `0${value}` : value}
       </span>
-      <span className="text-[10px] uppercase tracking-wider font-semibold text-gray-500 mt-1">{label}</span>
+      <span className="text-[10px] uppercase tracking-wider font-semibold text-gray-700 mt-1">{label}</span>
     </div>
   );
 
   return (
-    <div className={cn("flex justify-center items-end", className)}>
+    <div className={cn("flex justify-center items-end bg-white rounded-xl p-4 shadow-xl border border-border/50", className)}>
       <Item value={timeLeft.days} label="Giorni" />
       <span className="text-2xl font-bold mb-6 text-gray-400">:</span>
       <Item value={timeLeft.hours} label="Ore" />

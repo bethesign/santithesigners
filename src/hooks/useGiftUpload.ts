@@ -6,6 +6,7 @@ import { STORAGE_BUCKET } from '../lib/constants';
 export interface GiftFormData {
   type: 'digital' | 'physical';
   title: string;
+  keyword: string;
   url?: string;
   file?: File | null;
   photo?: File | null;
@@ -58,6 +59,10 @@ export function useGiftUpload() {
         throw new Error('Il titolo è obbligatorio');
       }
 
+      if (!formData.keyword.trim()) {
+        throw new Error('La parola chiave è obbligatoria');
+      }
+
       if (formData.type === 'digital') {
         if (!formData.url && !formData.file) {
           throw new Error('Inserisci almeno un URL o carica un file');
@@ -95,6 +100,7 @@ export function useGiftUpload() {
         user_id: user.id,
         type: formData.type,
         title: formData.title.trim(),
+        keyword: formData.keyword.trim().toUpperCase(),
         url: formData.url || null,
         file_path: filePath,
         photo_url: photoUrl,

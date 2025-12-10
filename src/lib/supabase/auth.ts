@@ -8,9 +8,11 @@ export async function checkEmailExists(email: string): Promise<boolean> {
     .from('users')
     .select('email')
     .eq('email', email)
-    .single();
+    .maybeSingle();
 
+  // maybeSingle returns null if no row found (no error)
   if (error) {
+    console.error('Error checking email:', error);
     return false;
   }
 

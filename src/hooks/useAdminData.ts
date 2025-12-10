@@ -6,18 +6,22 @@ export interface Participant {
   full_name: string;
   email: string;
   has_uploaded_gift: boolean;
+  gift_is_physical: boolean;
   quiz_completed: boolean;
   quiz_position: number | null;
+  quiz_time: number | null;
   is_admin: boolean;
 }
 
 export interface Settings {
   id: number;
   gifts_deadline: string | null;
+  draw_date: string | null;
   draw_enabled: boolean;
   draw_started: boolean;
   current_turn: number;
   extraction_generated_at: string | null;
+  extraction_completed_at: string | null;
 }
 
 export function useAdminData() {
@@ -34,18 +38,25 @@ export function useAdminData() {
       // Fetch users
       const { data: users, error: usersError } = await supabase
         .from('users')
-        .select('id, full_name, email, has_uploaded_gift, is_admin')
+        .select('id, full_name, email, has_uploaded_gift, role')
         .order('full_name', { ascending: true });
 
       if (usersError) throw usersError;
 
-      // Fetch quiz answers to get positions
+      // Fetch quiz answers to get positions and times
       const { data: quizAnswers, error: quizError } = await supabase
         .from('quiz_answers')
-        .select('user_id, answered_at')
+        .select('user_id, answered_at, time_elapsed')
         .order('answered_at', { ascending: true });
 
       if (quizError) throw quizError;
+
+      // Fetch gifts to check if physical
+      const { data: gifts, error: giftsError } = await supabase
+        .from('gifts')
+        .select('user_id, type');
+
+      if (giftsError) throw giftsError;
 
       // Combine data
       const participantsData: Participant[] = (users || []).map((user, index) => {
@@ -53,15 +64,18 @@ export function useAdminData() {
         const quizPosition = quizAnswer
           ? quizAnswers.findIndex(qa => qa.user_id === user.id) + 1
           : null;
+        const gift = gifts?.find(g => g.user_id === user.id);
 
         return {
           id: user.id,
           full_name: user.full_name,
           email: user.email,
           has_uploaded_gift: user.has_uploaded_gift,
+          gift_is_physical: gift?.type === 'physical',
           quiz_completed: !!quizAnswer,
           quiz_position: quizPosition,
-          is_admin: user.is_admin,
+          quiz_time: quizAnswer?.time_elapsed || null,
+          is_admin: (user as any).role === 'admin',
         };
       });
 
@@ -94,6 +108,6 @@ export function useAdminData() {
     settings,
     loading,
     error,
-    reload: loadData,
+    refreshData: loadData,
   };
 }
