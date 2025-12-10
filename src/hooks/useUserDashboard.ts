@@ -78,14 +78,14 @@ export function useUserDashboard() {
           .from('gifts')
           .select('id, type, title, created_at')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
         // Fetch user's quiz answer
         const { data: quizData } = await supabase
           .from('quiz_answers')
           .select('id, answer, answered_at')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
         // Calculate quiz position if quiz answered
         let quizPosition = null;
@@ -110,7 +110,7 @@ export function useUserDashboard() {
           .from('extraction')
           .select('order_position, revealed_at')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
         // Fetch received gift (if revealed)
         let receivedGift = null;
