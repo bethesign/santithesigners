@@ -105,6 +105,10 @@ export function useUserDashboard() {
           .eq('id', 1)
           .single();
 
+        console.log('📅 Settings loaded:', settingsData);
+        console.log('🎁 Gifts deadline:', settingsData?.gifts_deadline);
+        console.log('🎉 Draw date:', settingsData?.draw_date);
+
         // Fetch user's extraction turn (if exists)
         const { data: extractionData } = await supabase
           .from('extraction')
@@ -167,7 +171,8 @@ export function useUserDashboard() {
           schema: 'public',
           table: 'settings',
         },
-        () => {
+        (payload) => {
+          console.log('🔔 Settings updated via realtime:', payload);
           fetchDashboardData();
         }
       )
