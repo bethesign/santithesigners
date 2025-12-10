@@ -65,6 +65,7 @@ export interface Database {
           user_id: string
           type: 'digital' | 'physical'
           title: string
+          keyword: string | null
           url: string | null
           file_path: string | null
           photo_url: string | null
@@ -78,6 +79,7 @@ export interface Database {
           user_id: string
           type: 'digital' | 'physical'
           title: string
+          keyword?: string | null
           url?: string | null
           file_path?: string | null
           photo_url?: string | null
@@ -91,6 +93,7 @@ export interface Database {
           user_id?: string
           type?: 'digital' | 'physical'
           title?: string
+          keyword?: string | null
           url?: string | null
           file_path?: string | null
           photo_url?: string | null

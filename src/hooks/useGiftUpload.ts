@@ -94,7 +94,7 @@ export function useGiftUpload() {
         .from('gifts')
         .select('id')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       const giftData = {
         user_id: user.id,
