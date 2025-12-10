@@ -7,7 +7,7 @@ import { AuthLayout } from '../components/layout/AuthLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { InputWithIcon } from '../components/ui/InputWithIcon';
-import { Mail, Lock, Eye, EyeOff, Gift } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export const Login = () => {
@@ -110,10 +110,10 @@ export const Login = () => {
       >
         <Card className="border-border/50 shadow-xl bg-white w-full">
           <CardHeader className="flex flex-col items-center space-y-2 pb-2">
-            <div className="rounded-full bg-primary/10 p-3">
-              <Gift className="h-8 w-8 text-primary" />
+            <div className="text-6xl">
+              🎁
             </div>
-            <CardTitle className="text-2xl font-bold text-center text-gray-800">
+            <CardTitle className="text-2xl font-extrabold font-[Spectral] text-center text-[#da2c38]" style={{ fontWeight: 800 }}>
               Ti diamo il benvenuto
             </CardTitle>
             <p className="text-center text-sm text-gray-500">

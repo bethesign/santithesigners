@@ -47,9 +47,12 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
   });
 
   return (
-    <div className="flex min-h-screen w-full flex-col lg:flex-row overflow-x-hidden">
+    <div className="flex min-h-screen w-full flex-col lg:flex-row overflow-x-hidden bg-slate-950">
       {/* Decorative Left Side */}
-      <div className="relative flex h-64 w-full flex-col items-center justify-center overflow-hidden bg-[radial-gradient(ellipse_at_center,_var(--brand-primary-light),_var(--brand-primary-dark))] lg:h-auto lg:w-1/2">
+      <div className="relative flex h-64 w-full flex-col items-center justify-center overflow-hidden bg-slate-950 lg:h-screen lg:w-1/2">
+        {/* Ambient Background matching Dashboard */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black z-0" />
+        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
         {/* Christmas Emoji Particles */}
         <div className="absolute inset-0 pointer-events-none">
           {emojiParticles.map((particle, i) => (
@@ -111,7 +114,15 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
         </div>
 
         {/* Magic Christmas Tree */}
-        <div className="relative z-10 flex flex-col items-center text-white">
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-start text-white pt-0">
+          {/* Hanging String - from absolute top */}
+          <motion.div
+            className="w-0.5 bg-white/30 h-12 lg:h-20"
+            initial={{ scaleY: 0, opacity: 0 }}
+            animate={{ scaleY: 1, opacity: 0.6 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          />
+
           <motion.div
             className="origin-top"
             initial={{ scale: 0.8, opacity: 0 }}
@@ -173,13 +184,14 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
             `}</style>
           </motion.div>
 
+          {/* Title */}
           <motion.div
-            className="mt-6 bg-[#D42426] border-4 border-white px-8 py-4 rounded-2xl shadow-2xl"
+            className="mt-4 lg:mt-6"
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.3 }}
           >
-            <h1 className="text-3xl lg:text-5xl font-display font-extrabold text-white">
+            <h1 className="text-2xl sm:text-3xl lg:text-5xl font-[Spectral] font-semibold text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-yellow-200 to-red-400 whitespace-nowrap px-4">
               Santi Thesigners
             </h1>
           </motion.div>

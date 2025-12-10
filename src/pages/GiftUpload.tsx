@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase/client';
 import { useGiftUpload, GiftFormData } from '../hooks/useGiftUpload';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
-import { ChevronRight, Gift, Monitor, CheckCircle2, Sparkles } from 'lucide-react';
+import { ChevronRight, Monitor, CheckCircle2, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const GiftUpload = () => {
@@ -106,7 +106,7 @@ export const GiftUpload = () => {
                     onClick={() => setGiftType('physical')}
                     className={`py-3 text-sm font-bold rounded-lg transition-colors flex items-center justify-center gap-2 ${giftType === 'physical' ? 'text-white' : 'text-slate-400 hover:text-slate-200'}`}
                   >
-                    <Gift size={16} />
+                    <span className="text-base">🎁</span>
                     Regalo Fisico
                   </button>
                   <button
@@ -248,7 +248,7 @@ export const GiftUpload = () => {
                     disabled={loading}
                     className="w-full py-4 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 disabled:from-slate-700 disabled:to-slate-600 text-white rounded-xl font-bold text-lg shadow-lg shadow-indigo-900/20 transition-all transform hover:scale-[1.02] flex items-center justify-center gap-2"
                   >
-                    <Gift size={20} />
+                    <span className="text-xl">🎁</span>
                     {loading ? `Caricamento... ${uploadProgress}%` : 'Salva e Partecipa'}
                   </button>
                 </div>
