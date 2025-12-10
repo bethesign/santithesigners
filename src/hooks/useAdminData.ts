@@ -8,6 +8,7 @@ export interface Participant {
   has_uploaded_gift: boolean;
   gift_is_physical: boolean;
   quiz_completed: boolean;
+  quiz_is_correct: boolean | null;
   quiz_position: number | null;
   quiz_time: number | null;
   is_admin: boolean;
@@ -43,10 +44,10 @@ export function useAdminData() {
 
       if (usersError) throw usersError;
 
-      // Fetch quiz answers to get positions and times
+      // Fetch quiz answers to get positions, times, and correctness
       const { data: quizAnswers, error: quizError } = await supabase
         .from('quiz_answers')
-        .select('user_id, answered_at, time_elapsed')
+        .select('user_id, answered_at, time_elapsed, is_correct')
         .order('answered_at', { ascending: true });
 
       if (quizError) throw quizError;
@@ -73,6 +74,7 @@ export function useAdminData() {
           has_uploaded_gift: user.has_uploaded_gift,
           gift_is_physical: gift?.type === 'physical',
           quiz_completed: !!quizAnswer,
+          quiz_is_correct: quizAnswer?.is_correct ?? null,
           quiz_position: quizPosition,
           quiz_time: quizAnswer?.time_elapsed || null,
           is_admin: (user as any).role === 'admin',

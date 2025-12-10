@@ -1,17 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, Gift, X, Layout, Monitor } from 'lucide-react';
+import { Sparkles, Gift, X, Layout, Monitor, Settings } from 'lucide-react';
 import UserDashboard from './components/UserDashboard';
+import AdminDashboard, { QuizConfig, Participant } from './components/AdminDashboard';
 import Snow from './components/Snow';
 
 // --- DATA CONFIGURATION ---
 
-const PARTICIPANTS = [
+const PARTICIPANTS_NAMES = [
   "Alessandro", "Bea", "Carlo", "Diana", "Edoardo", 
   "Francesca", "Giorgio", "Ilaria", "Luca", "Martina",
   "Nicola", "Olivia", "Paolo", "Quinta", "Riccardo",
   "Sara", "Tommaso", "Umberto", "Valentina", "Zeno"
 ];
+
+// Mock Initial Participants Data for Admin View
+const INITIAL_PARTICIPANTS_DATA: Participant[] = PARTICIPANTS_NAMES.map((name, idx) => ({
+  id: `p-${idx}`,
+  name: name,
+  surname: "", // Mock surname not strictly needed for this demo
+  hasGift: Math.random() > 0.2, // 80% have gifts
+  quizStatus: Math.random() > 0.7 ? (Math.random() > 0.5 ? 'CORRECT' : 'WRONG') : 'PENDING',
+  quizTime: Math.random() * 30 + 5 // Random time between 5 and 35s
+}));
 
 const GIFT_DATA = [
   { id: 1, label: "Stella", content: "Buono Amazon 20€", color: "bg-red-600" },
@@ -36,6 +47,13 @@ const GIFT_DATA = [
   { id: 20, label: "Inverno", content: "Mystery Box", color: "bg-violet-600" },
 ];
 
+const INITIAL_QUIZ_CONFIG: QuizConfig = {
+  question: "Quante renne trainano la slitta di Babbo Natale (inclusa Rudolph)?",
+  answers: ["7", "8", "9", "10", "12"],
+  correctIndex: 2, // 9
+  timeLimit: 15
+};
+
 // --- COMPONENTS ---
 
 // 3D CSS Box Component
@@ -43,7 +61,7 @@ const GiftBox = ({ gift, onClick, isOpen, className = "" }: { gift: any, onClick
   return (
     <motion.div
       layoutId={`gift-container-${gift.id}`}
-      className={`relative group cursor-pointer perspective-1000 ${className}`}
+      className={`relative group ${isOpen ? '' : 'cursor-pointer'} perspective-1000 ${className}`}
       onClick={onClick}
       whileHover={!isOpen ? { scale: 1.05, rotate: 2 } : {}}
       whileTap={!isOpen ? { scale: 0.95 } : {}}
@@ -85,19 +103,35 @@ const GiftBox = ({ gift, onClick, isOpen, className = "" }: { gift: any, onClick
 };
 
 export default function App() {
-  const [view, setView] = useState<'EXTRACTION' | 'DASHBOARD'>('DASHBOARD');
+  const [view, setView] = useState<'EXTRACTION' | 'DASHBOARD' | 'ADMIN_DASHBOARD'>('DASHBOARD');
+  
+  // GLOBAL STATE
+  const [isExtractionStarted, setExtractionStarted] = useState(false);
+  const [targetDate, setTargetDate] = useState<string | null>(null);
   
   const [gifts, setGifts] = useState(GIFT_DATA);
-  const [participants, setParticipants] = useState(PARTICIPANTS);
+  const [participants, setParticipants] = useState<Participant[]>(INITIAL_PARTICIPANTS_DATA);
+  const [quizConfig, setQuizConfig] = useState<QuizConfig>(INITIAL_QUIZ_CONFIG);
+  
+  // Extraction State
   const [selectedGiftId, setSelectedGiftId] = useState<number | null>(null);
   const [isRevealed, setIsRevealed] = useState(false);
 
-  const currentParticipant = participants[0];
+  // Computed: Next participant to pick a gift
+  // Filter out those who have already 'extracted' a gift (marked as extracted)
+  const availableParticipants = participants.filter(p => !p.extracted);
+  const currentParticipant = availableParticipants.length > 0 ? availableParticipants[0].name : null;
   const selectedGift = gifts.find(g => g.id === selectedGiftId);
 
   // Handle clicking a gift in the grid
   const handleGiftClick = (id: number) => {
+    if (!isExtractionStarted) {
+        alert("L'estrazione non è ancora iniziata! L'admin deve sbloccarla.");
+        return;
+    }
     if (selectedGiftId) return; // Already opening one
+    if (!currentParticipant) return;
+
     setSelectedGiftId(id);
     
     // Auto reveal sequence
@@ -106,34 +140,95 @@ export default function App() {
     }, 800);
   };
 
-  // Close modal and remove gift/participant
+  // Close modal and mark gift/participant as processed
   const handleNext = () => {
     setIsRevealed(false);
     setSelectedGiftId(null);
     
-    // Remove the opened gift from the list
+    // Remove the opened gift from the list and mark participant as extracted
     setTimeout(() => {
       setGifts(prev => prev.filter(g => g.id !== selectedGiftId));
-      // Move to next participant
+      
       setParticipants(prev => {
         const next = [...prev];
-        next.shift(); // Remove current
+        // Find the first non-extracted participant and mark them
+        const currentIdx = next.findIndex(p => !p.extracted);
+        if (currentIdx !== -1) {
+            next[currentIdx] = { ...next[currentIdx], extracted: true };
+        }
         return next;
       });
+
     }, 300); // Wait for exit animation
   };
+
+  // Mock Quiz Submit Handler (Updates the first participant for demo purposes)
+  const handleQuizSubmit = (correct: boolean, timeTaken: number) => {
+      setParticipants(prev => {
+          const next = [...prev];
+          // Update the first participant ("Alessandro") just to show it works in Admin Panel
+          // Or find "myself" if we had a logged in user concept.
+          if (next[0]) {
+              next[0] = {
+                  ...next[0],
+                  quizStatus: correct ? 'CORRECT' : 'WRONG',
+                  quizTime: timeTaken
+              };
+          }
+          return next;
+      });
+  };
+
+  // --- RENDER VIEWS ---
+
+  if (view === 'ADMIN_DASHBOARD') {
+      return (
+          <>
+            <AdminDashboard 
+                targetDate={targetDate}
+                setTargetDate={setTargetDate}
+                isExtractionStarted={isExtractionStarted}
+                setExtractionStarted={setExtractionStarted}
+                quizConfig={quizConfig}
+                setQuizConfig={setQuizConfig}
+                participants={participants}
+            />
+            {/* Dev Nav */}
+            <div className="fixed top-4 right-4 z-[60] flex gap-2">
+                <button 
+                  onClick={() => setView('EXTRACTION')}
+                  className="bg-black/80 hover:bg-black text-white p-2 rounded-lg text-xs backdrop-blur border border-white/20 flex items-center gap-2"
+                >
+                   <Monitor size={14} /> Live View
+                </button>
+                <button 
+                  onClick={() => setView('DASHBOARD')}
+                  className="bg-black/80 hover:bg-black text-white p-2 rounded-lg text-xs backdrop-blur border border-white/20 flex items-center gap-2"
+                >
+                   <Layout size={14} /> User App
+                </button>
+            </div>
+          </>
+      );
+  }
 
   if (view === 'DASHBOARD') {
     return (
       <>
-         <UserDashboard onEnterLive={() => setView('EXTRACTION')} />
+         <UserDashboard 
+            onEnterLive={() => setView('EXTRACTION')} 
+            targetDate={targetDate}
+            quizConfig={quizConfig}
+            onQuizSubmit={handleQuizSubmit}
+            isExtractionStarted={isExtractionStarted}
+         />
          {/* View Switcher Button (Dev Only) */}
-         <div className="fixed top-4 right-4 z-[60]">
+         <div className="fixed top-4 right-4 z-[60] flex gap-2">
             <button 
-              onClick={() => setView('EXTRACTION')}
+              onClick={() => setView('ADMIN_DASHBOARD')}
               className="bg-black/80 hover:bg-black text-white p-2 rounded-lg text-xs backdrop-blur border border-white/20 flex items-center gap-2"
             >
-               <Monitor size={14} /> Admin View
+               <Settings size={14} /> Admin
             </button>
          </div>
       </>
@@ -145,12 +240,18 @@ export default function App() {
       <Snow />
       
       {/* View Switcher Button (Dev Only) */}
-      <div className="fixed top-4 right-4 z-[60]">
+      <div className="fixed top-4 right-4 z-[60] flex gap-2">
         <button 
           onClick={() => setView('DASHBOARD')}
           className="bg-black/80 hover:bg-black text-white p-2 rounded-lg text-xs backdrop-blur border border-white/20 flex items-center gap-2"
         >
             <Layout size={14} /> User View
+        </button>
+        <button 
+          onClick={() => setView('ADMIN_DASHBOARD')}
+          className="bg-black/80 hover:bg-black text-white p-2 rounded-lg text-xs backdrop-blur border border-white/20 flex items-center gap-2"
+        >
+            <Settings size={14} /> Admin
         </button>
       </div>
 
@@ -182,6 +283,11 @@ export default function App() {
                   {currentParticipant}
                 </span>
               </div>
+              {!isExtractionStarted && (
+                  <div className="mt-2 text-xs text-red-400 font-bold bg-red-900/30 px-3 py-1 rounded border border-red-500/20">
+                      🔒 IN ATTESA DI SBLOCCO
+                  </div>
+              )}
             </motion.div>
           ) : (
              <motion.div
@@ -199,7 +305,7 @@ export default function App() {
       <main className="relative z-10 max-w-6xl mx-auto px-4 pb-20">
         <motion.div 
           layout
-          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 md:gap-8"
+          className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 md:gap-8 ${!isExtractionStarted ? 'opacity-50 grayscale' : ''} transition-all duration-500`}
         >
           <AnimatePresence>
             {gifts.map((gift) => (
@@ -214,14 +320,11 @@ export default function App() {
                 {selectedGiftId !== gift.id && (
                   <GiftBox 
                     gift={gift} 
-                    onClick={() => currentParticipant && handleGiftClick(gift.id)}
+                    onClick={() => handleGiftClick(gift.id)}
                     className="w-full"
                   />
                 )}
-                {/* Placeholder to keep grid space while animating out, if needed. 
-                    But Framer Motion 'layout' prop on parent grid usually handles gap collapse nicely. 
-                    We leave the space empty if it is selected so it 'moves' to modal.
-                */}
+                {/* Placeholder to keep grid space while animating out */}
                 {selectedGiftId === gift.id && <div className="w-full aspect-square bg-transparent" />}
               </motion.div>
             ))}

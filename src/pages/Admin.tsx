@@ -1,13 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { DashboardLayout } from '../components/layout/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
-import { Badge } from '../components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { ArrowLeft, Play, Calendar, Users, HelpCircle, Settings as SettingsIcon, Clock } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Settings, Users, HelpCircle, Save, Play, Lock, Unlock, Clock, CheckCircle2, XCircle, Trophy, Gift, Calendar, ArrowLeft } from 'lucide-react';
 import { useAdminData } from '../hooks/useAdminData';
 import { supabase } from '../lib/supabase/client';
 import { startInteractiveExtraction, stopInteractiveExtraction } from '../services/interactiveExtraction';
@@ -23,19 +17,22 @@ interface QuizQuestion {
 export const Admin = () => {
   const navigate = useNavigate();
   const { participants, settings, loading, error, refreshData } = useAdminData();
+  const [activeTab, setActiveTab] = useState<'DEADLINES' | 'EXTRACTION' | 'PARTICIPANTS' | 'QUIZ'>('EXTRACTION');
 
-  // State for deadline management
+  // State for gifts deadline
   const [giftsDeadline, setGiftsDeadline] = useState(
     settings?.gifts_deadline ? new Date(settings.gifts_deadline).toISOString().slice(0, 16) : ''
   );
+  const [savingGiftsDeadline, setSavingGiftsDeadline] = useState(false);
+
+  // State for extraction date
   const [extractionDate, setExtractionDate] = useState(
     settings?.draw_date ? new Date(settings.draw_date).toISOString().slice(0, 16) : ''
   );
-  const [savingDeadlines, setSavingDeadlines] = useState(false);
+  const [savingExtractionDate, setSavingExtractionDate] = useState(false);
 
-  // State for extraction
-  const [startingExtraction, setStartingExtraction] = useState(false);
-  const [stoppingExtraction, setStoppingExtraction] = useState(false);
+  // State for extraction control
+  const [togglingExtraction, setTogglingExtraction] = useState(false);
 
   // State for quiz
   const [quizQuestion, setQuizQuestion] = useState('');
@@ -52,6 +49,13 @@ export const Admin = () => {
   React.useEffect(() => {
     loadQuizData();
   }, []);
+
+  React.useEffect(() => {
+    if (settings) {
+      setGiftsDeadline(settings.gifts_deadline ? new Date(settings.gifts_deadline).toISOString().slice(0, 16) : '');
+      setExtractionDate(settings.draw_date ? new Date(settings.draw_date).toISOString().slice(0, 16) : '');
+    }
+  }, [settings]);
 
   const loadQuizData = async () => {
     const { data: question } = await supabase
@@ -74,60 +78,74 @@ export const Admin = () => {
     }
   };
 
-  // 1. IMPOSTAZIONE TERMINE INSERIMENTO REGALI
-  const handleSaveDeadlines = async () => {
-    if (!giftsDeadline || !extractionDate) {
-      alert('Inserisci entrambe le date');
+  // SAVE GIFTS DEADLINE
+  const handleSaveGiftsDeadline = async () => {
+    if (!giftsDeadline) {
+      alert('Inserisci la data di scadenza regali');
       return;
     }
 
-    setSavingDeadlines(true);
+    setSavingGiftsDeadline(true);
 
     const { error } = await supabase
       .from('settings')
-      .update({
-        gifts_deadline: new Date(giftsDeadline).toISOString(),
-        draw_date: new Date(extractionDate).toISOString()
-      })
+      .update({ gifts_deadline: new Date(giftsDeadline).toISOString() })
       .eq('id', settings?.id);
 
     if (error) {
-      console.error('Error saving deadlines:', error);
+      console.error('Error saving gifts deadline:', error);
       alert('Errore durante il salvataggio');
     } else {
-      alert('Date salvate con successo!');
+      alert('Scadenza regali salvata!');
       refreshData();
     }
 
-    setSavingDeadlines(false);
+    setSavingGiftsDeadline(false);
   };
 
-  // 2. ESTRAZIONE
-  const handleStartExtraction = async () => {
-    if (!confirm('Sei sicuro di voler avviare l\'estrazione live? I partecipanti potranno iniziare a scegliere i regali.')) {
+  // SAVE EXTRACTION DATE
+  const handleSaveExtractionDate = async () => {
+    if (!extractionDate) {
+      alert('Inserisci la data di estrazione');
       return;
     }
 
-    setStartingExtraction(true);
+    setSavingExtractionDate(true);
+
+    const { error } = await supabase
+      .from('settings')
+      .update({ draw_date: new Date(extractionDate).toISOString() })
+      .eq('id', settings?.id);
+
+    if (error) {
+      console.error('Error saving extraction date:', error);
+      alert('Errore durante il salvataggio');
+    } else {
+      alert('Data estrazione salvata!');
+      refreshData();
+    }
+
+    setSavingExtractionDate(false);
+  };
+
+  // START EXTRACTION
+  const handleStartExtraction = async () => {
+    setTogglingExtraction(true);
     const result = await startInteractiveExtraction();
 
     if (result.success) {
       alert(`Estrazione avviata! Ordine di turno creato per ${result.turnsCreated} partecipanti.`);
       refreshData();
-      navigate('/extraction');
     } else {
       alert(`Errore: ${result.message}`);
     }
 
-    setStartingExtraction(false);
+    setTogglingExtraction(false);
   };
 
+  // STOP EXTRACTION
   const handleStopExtraction = async () => {
-    if (!confirm('Sei sicuro di voler fermare l\'estrazione? I partecipanti non potranno più scegliere.')) {
-      return;
-    }
-
-    setStoppingExtraction(true);
+    setTogglingExtraction(true);
     const result = await stopInteractiveExtraction();
 
     if (result.success) {
@@ -137,10 +155,10 @@ export const Admin = () => {
       alert(`Errore: ${result.message}`);
     }
 
-    setStoppingExtraction(false);
+    setTogglingExtraction(false);
   };
 
-  // 4. CONFIGURAZIONE QUIZ
+  // SAVE QUIZ
   const handleSaveQuiz = async () => {
     if (!quizQuestion.trim() || !optionA.trim() || !optionB.trim() || !optionC.trim() || !optionD.trim() || !optionE.trim()) {
       alert('Compila tutti i campi obbligatori');
@@ -196,7 +214,7 @@ export const Admin = () => {
         console.error('Error creating question:', error);
         alert('Errore durante la creazione');
       } else {
-        alert('Quiz creato!');
+        alert('Quiz salvato e aggiornato per tutti gli utenti!');
         loadQuizData();
       }
     }
@@ -204,401 +222,302 @@ export const Admin = () => {
     setSavingQuiz(false);
   };
 
+  // SORTED PARTICIPANTS
+  const sortedParticipants = [...participants].sort((a, b) => {
+    // 1. Correct answers first
+    if (a.quiz_is_correct && !b.quiz_is_correct) return -1;
+    if (!a.quiz_is_correct && b.quiz_is_correct) return 1;
+
+    // 2. Sort by time (lowest first) for both correct and wrong groups
+    return (a.quiz_time || 999) - (b.quiz_time || 999);
+  });
+
   if (loading) {
     return (
-      <DashboardLayout userName="Admin">
-        <div className="flex justify-center items-center min-h-[400px]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-white">Caricamento...</p>
-          </div>
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-white">Caricamento...</p>
         </div>
-      </DashboardLayout>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <DashboardLayout userName="Admin">
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="bg-red-50 text-red-600 p-4 rounded-lg">
           Errore: {error}
         </div>
-      </DashboardLayout>
+      </div>
     );
   }
 
-  const stats = {
-    total: participants.length,
-    withGifts: participants.filter(p => p.has_uploaded_gift).length,
-    withQuiz: participants.filter(p => p.quiz_completed).length,
-    ready: participants.filter(p => p.has_uploaded_gift && p.quiz_completed).length,
-  };
-
   return (
-    <DashboardLayout userName="Admin" isAdmin={true}>
-      <div className="space-y-6">
+    <div className="min-h-screen bg-slate-900 text-slate-100 p-6 font-[Spectral]">
+      {/* HEADER */}
+      <header className="mb-8 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="p-2 hover:bg-white/10 rounded-full transition-colors"
+          >
+            <ArrowLeft size={24} />
+          </button>
+          <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-amber-500">
+            Admin Control Panel
+          </h1>
+        </div>
+        <div className="text-sm text-slate-400">
+          Secret Santa Admin
+        </div>
+      </header>
 
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="rounded-full" onClick={() => navigate('/dashboard')}>
-              <ArrowLeft className="h-6 w-6" />
-            </Button>
-            <div>
-              <h1 className="text-2xl font-extrabold font-display text-white" style={{ fontWeight: 800 }}>
-                Pannello Amministratore
-              </h1>
-              <p className="text-white/60">Gestisci l'evento Secret Santa</p>
+      {/* TABS */}
+      <div className="flex gap-4 mb-8 border-b border-white/10 pb-1">
+        <button
+          onClick={() => setActiveTab('DEADLINES')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-t-lg transition-colors ${activeTab === 'DEADLINES' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400 hover:text-white'}`}
+        >
+          <Calendar size={18} /> Scadenze Regali
+        </button>
+        <button
+          onClick={() => setActiveTab('EXTRACTION')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-t-lg transition-colors ${activeTab === 'EXTRACTION' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400 hover:text-white'}`}
+        >
+          <Settings size={18} /> Estrazione
+        </button>
+        <button
+          onClick={() => setActiveTab('PARTICIPANTS')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-t-lg transition-colors ${activeTab === 'PARTICIPANTS' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400 hover:text-white'}`}
+        >
+          <Users size={18} /> Partecipanti
+        </button>
+        <button
+          onClick={() => setActiveTab('QUIZ')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-t-lg transition-colors ${activeTab === 'QUIZ' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400 hover:text-white'}`}
+        >
+          <HelpCircle size={18} /> Quiz
+        </button>
+      </div>
+
+      <div className="bg-slate-800/50 border border-white/10 rounded-2xl p-6 shadow-xl max-w-5xl mx-auto">
+
+        {/* TAB: SCADENZE REGALI */}
+        {activeTab === 'DEADLINES' && (
+          <div className="space-y-8">
+            <div className="space-y-4">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Calendar className="text-yellow-400" /> Scadenza Inserimento Regali
+              </h2>
+              <p className="text-slate-400 text-sm">Imposta la data e l'ora limite per l'inserimento dei regali. I membri vedranno il countdown.</p>
+              <input
+                type="datetime-local"
+                className="bg-slate-900 border border-white/20 rounded-lg p-3 text-white w-full max-w-md focus:ring-2 focus:ring-indigo-500 outline-none"
+                value={giftsDeadline}
+                onChange={(e) => setGiftsDeadline(e.target.value)}
+              />
+              <button
+                onClick={handleSaveGiftsDeadline}
+                disabled={savingGiftsDeadline}
+                className="w-full max-w-md py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-900/20 flex items-center justify-center gap-2 transition-all disabled:bg-slate-700 disabled:cursor-not-allowed"
+              >
+                <Save size={20} /> {savingGiftsDeadline ? 'Salvataggio...' : 'Salva Scadenza Regali'}
+              </button>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="bg-white border-border/50 shadow-xl">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Partecipanti</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-extrabold font-display text-gray-800" style={{ fontWeight: 800 }}>
-                {stats.total}
-              </div>
-            </CardContent>
-          </Card>
+        {/* TAB: EXTRACTION */}
+        {activeTab === 'EXTRACTION' && (
+          <div className="space-y-8">
+            <div className="space-y-4">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Clock className="text-yellow-400" /> Timer Inizio Evento
+              </h2>
+              <p className="text-slate-400 text-sm">Imposta la data e l'ora target per il conto alla rovescia sulla dashboard utenti.</p>
+              <input
+                type="datetime-local"
+                className="bg-slate-900 border border-white/20 rounded-lg p-3 text-white w-full max-w-md focus:ring-2 focus:ring-indigo-500 outline-none"
+                value={extractionDate}
+                onChange={(e) => setExtractionDate(e.target.value)}
+              />
+              <button
+                onClick={handleSaveExtractionDate}
+                disabled={savingExtractionDate}
+                className="w-full max-w-md py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-900/20 flex items-center justify-center gap-2 transition-all disabled:bg-slate-700 disabled:cursor-not-allowed"
+              >
+                <Save size={20} /> {savingExtractionDate ? 'Salvataggio...' : 'Salva Data Estrazione'}
+              </button>
+            </div>
 
-          <Card className="bg-white border-border/50 shadow-xl">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Con Regalo</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-extrabold font-display text-blue-600" style={{ fontWeight: 800 }}>
-                {stats.withGifts}
-              </div>
-            </CardContent>
-          </Card>
+            <div className="h-px bg-white/10" />
 
-          <Card className="bg-white border-border/50 shadow-xl">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Quiz Fatto</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-extrabold font-display text-amber-600" style={{ fontWeight: 800 }}>
-                {stats.withQuiz}
-              </div>
-            </CardContent>
-          </Card>
+            <div className="space-y-4">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Play className="text-red-400" /> Stato Estrazione
+              </h2>
+              <p className="text-slate-400 text-sm">
+                Quando "BLOCCATO", i partecipanti vedono il tabellone ma non possono aprire i pacchi.
+                Sblocca per iniziare la live.
+              </p>
 
-          <Card className="bg-white border-border/50 shadow-xl">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Pronti</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-extrabold font-display text-green-600" style={{ fontWeight: 800 }}>
-                {stats.ready}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Tabs per le 4 macro funzioni */}
-        <Tabs defaultValue="deadlines" className="w-full">
-          <TabsList>
-            <TabsTrigger value="deadlines">
-              <Calendar className="h-4 w-4 mr-2" />
-              Date & Scadenze
-            </TabsTrigger>
-            <TabsTrigger value="extraction">
-              <Play className="h-4 w-4 mr-2" />
-              Estrazione
-            </TabsTrigger>
-            <TabsTrigger value="participants">
-              <Users className="h-4 w-4 mr-2" />
-              Partecipanti
-            </TabsTrigger>
-            <TabsTrigger value="quiz">
-              <HelpCircle className="h-4 w-4 mr-2" />
-              Quiz
-            </TabsTrigger>
-          </TabsList>
-
-          {/* TAB 1: DATE E SCADENZE */}
-          <TabsContent value="deadlines" className="mt-4">
-            <Card className="bg-white border-border/50 shadow-xl">
-              <CardHeader>
-                <CardTitle className="text-[#da2c38] font-extrabold font-display" style={{ fontWeight: 800 }}>
-                  Imposta Date e Scadenze
-                </CardTitle>
-                <CardDescription>
-                  Configura la deadline per l'inserimento regali e la data dell'estrazione live
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-gray-700">
-                    Scadenza Inserimento Regali
-                  </label>
-                  <Input
-                    type="datetime-local"
-                    value={giftsDeadline}
-                    onChange={(e) => setGiftsDeadline(e.target.value)}
-                    className="max-w-sm"
-                  />
-                  <p className="text-xs text-gray-500">
-                    I membri vedranno il countdown fino a questa data
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-gray-700">
-                    Data e Ora Estrazione Live
-                  </label>
-                  <Input
-                    type="datetime-local"
-                    value={extractionDate}
-                    onChange={(e) => setExtractionDate(e.target.value)}
-                    className="max-w-sm"
-                  />
-                  <p className="text-xs text-gray-500">
-                    I membri vedranno il countdown fino all'inizio dell'estrazione
-                  </p>
-                </div>
-
-                <Button
-                  onClick={handleSaveDeadlines}
-                  disabled={savingDeadlines}
-                  className="bg-[#226f54] text-white hover:bg-[#1a5640]"
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={handleStartExtraction}
+                  disabled={settings?.draw_enabled || togglingExtraction}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${settings?.draw_enabled ? 'bg-green-600/20 text-green-400 cursor-default' : 'bg-green-600 text-white hover:bg-green-500 shadow-lg shadow-green-900/20'}`}
                 >
-                  {savingDeadlines ? 'Salvataggio...' : 'Salva Date'}
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                  <Unlock size={20} />
+                  AVVIA ESTRAZIONE
+                </button>
 
-          {/* TAB 2: ESTRAZIONE */}
-          <TabsContent value="extraction" className="mt-4">
-            <Card className="bg-white border-border/50 shadow-xl">
-              <CardHeader>
-                <CardTitle className="text-[#da2c38] font-extrabold font-display" style={{ fontWeight: 800 }}>
-                  Gestione Estrazione Live
-                </CardTitle>
-                <CardDescription>
-                  Avvia o ferma l'estrazione interattiva. I partecipanti sceglieranno i regali in base all'ordine del quiz.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-                  <div className="flex-1">
-                    <div className="text-sm font-semibold text-gray-700 mb-1">Stato Estrazione</div>
-                    {settings?.draw_enabled ? (
-                      <Badge className="bg-green-100 text-green-700 border-green-300">
-                        🟢 LIVE - Attiva
-                      </Badge>
-                    ) : (
-                      <Badge className="bg-gray-100 text-gray-600 border-gray-300">
-                        ⚪ Non Avviata
-                      </Badge>
-                    )}
-                  </div>
-                </div>
+                <button
+                  onClick={handleStopExtraction}
+                  disabled={!settings?.draw_enabled || togglingExtraction}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${!settings?.draw_enabled ? 'bg-red-600/20 text-red-400 cursor-default' : 'bg-red-600 text-white hover:bg-red-500 shadow-lg shadow-red-900/20'}`}
+                >
+                  <Lock size={20} />
+                  BLOCCA
+                </button>
+              </div>
 
-                {!settings?.draw_enabled ? (
-                  <Button
-                    onClick={handleStartExtraction}
-                    disabled={startingExtraction || stats.ready === 0}
-                    className="w-full bg-[#da2c38] text-white hover:bg-red-700"
-                  >
-                    {startingExtraction ? 'Avvio in corso...' : 'Avvia Estrazione Live'}
-                  </Button>
-                ) : (
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={() => navigate('/extraction')}
-                      className="flex-1 bg-[#226f54] text-white hover:bg-[#1a5640]"
+              <div className={`mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold ${settings?.draw_enabled ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
+                STATO ATTUALE: {settings?.draw_enabled ? "ESTRAZIONE IN CORSO (APERTURA ABILITATA)" : "ATTESA (APERTURA BLOCCATA)"}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB: PARTICIPANTS */}
+        {activeTab === 'PARTICIPANTS' && (
+          <div className="space-y-6">
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <Trophy className="text-yellow-400" /> Classifica & Stato
+            </h2>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="text-slate-400 border-b border-white/10 text-sm uppercase tracking-wider">
+                    <th className="p-4">Pos</th>
+                    <th className="p-4">Partecipante</th>
+                    <th className="p-4 text-center">Regalo</th>
+                    <th className="p-4 text-center">Fisico</th>
+                    <th className="p-4 text-center">Quiz</th>
+                    <th className="p-4 text-right">Tempo</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {sortedParticipants.map((p, index) => {
+                    // Logic for row styling
+                    let rowBg = 'hover:bg-white/5';
+                    let scoreColor = 'text-slate-400';
+
+                    if (index === 0 && p.quiz_is_correct) rowBg = 'bg-yellow-500/10 hover:bg-yellow-500/20 border-l-4 border-yellow-500';
+                    else if (p.quiz_is_correct) rowBg = 'bg-green-500/5 hover:bg-green-500/10';
+                    else if (p.quiz_is_correct === false) rowBg = 'bg-red-500/5 hover:bg-red-500/10';
+
+                    if (p.quiz_is_correct) scoreColor = 'text-green-400 font-bold';
+                    if (p.quiz_is_correct === false) scoreColor = 'text-red-400 font-bold';
+
+                    return (
+                      <tr key={p.id} className={`transition-colors ${rowBg}`}>
+                        <td className="p-4 font-mono text-slate-500">#{index + 1}</td>
+                        <td className="p-4">
+                          <div className="font-bold text-white">{p.full_name}</div>
+                        </td>
+                        <td className="p-4 text-center">
+                          {p.has_uploaded_gift ?
+                            <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-500/20 text-green-400"><Gift size={16} /></span> :
+                            <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-700 text-slate-500"><XCircle size={16} /></span>
+                          }
+                        </td>
+                        <td className="p-4 text-center">
+                          {p.gift_is_physical ?
+                            <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 text-xs font-bold">Sì</span> :
+                            <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-700 text-slate-500 text-xs">No</span>
+                          }
+                        </td>
+                        <td className={`p-4 text-center ${scoreColor}`}>
+                          {p.quiz_is_correct === true && "CORRETTO"}
+                          {p.quiz_is_correct === false && "ERRATO"}
+                          {p.quiz_is_correct === null && "..."}
+                        </td>
+                        <td className="p-4 text-right font-mono text-slate-300">
+                          {p.quiz_time && p.quiz_time > 0 ? `${p.quiz_time.toFixed(1)}s` : '-'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* TAB: QUIZ */}
+        {activeTab === 'QUIZ' && (
+          <div className="space-y-6">
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <HelpCircle className="text-purple-400" /> Configurazione Quiz
+            </h2>
+
+            <div className="space-y-4">
+              {/* Question */}
+              <div>
+                <label className="block text-sm font-bold text-slate-400 mb-1">Domanda</label>
+                <input
+                  type="text"
+                  value={quizQuestion}
+                  onChange={(e) => setQuizQuestion(e.target.value)}
+                  className="w-full bg-slate-900 border border-white/20 rounded-lg p-3 text-white focus:ring-2 focus:ring-purple-500 outline-none"
+                  placeholder="Inserisci la domanda..."
+                />
+              </div>
+
+              {/* Answers */}
+              <div className="space-y-3">
+                <label className="block text-sm font-bold text-slate-400 mb-1">Risposte (Seleziona la corretta)</label>
+                {[
+                  { value: 'A', state: optionA, setState: setOptionA },
+                  { value: 'B', state: optionB, setState: setOptionB },
+                  { value: 'C', state: optionC, setState: setOptionC },
+                  { value: 'D', state: optionD, setState: setOptionD },
+                  { value: 'E', state: optionE, setState: setOptionE }
+                ].map((option) => (
+                  <div key={option.value} className="flex items-center gap-3">
+                    <button
+                      onClick={() => setCorrectAnswer(option.value)}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all ${correctAnswer === option.value ? 'bg-green-500 border-green-500 text-black' : 'border-slate-600 text-slate-600 hover:border-slate-400'}`}
                     >
-                      <Play className="h-4 w-4 mr-2" />
-                      Vai alla Live
-                    </Button>
-                    <Button
-                      onClick={handleStopExtraction}
-                      disabled={stoppingExtraction}
-                      variant="destructive"
-                    >
-                      {stoppingExtraction ? 'Arresto...' : 'Ferma Estrazione'}
-                    </Button>
-                  </div>
-                )}
-
-                {stats.ready === 0 && !settings?.draw_enabled && (
-                  <p className="text-sm text-amber-600 bg-amber-50 p-3 rounded-lg">
-                    ⚠️ Nessun partecipante pronto. Assicurati che abbiano caricato il regalo e fatto il quiz.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* TAB 3: PARTECIPANTI */}
-          <TabsContent value="participants" className="mt-4">
-            <Card className="bg-white border-border/50 shadow-xl">
-              <CardHeader>
-                <CardTitle className="text-[#da2c38] font-extrabold font-display" style={{ fontWeight: 800 }}>
-                  Elenco Partecipanti
-                </CardTitle>
-                <CardDescription>
-                  Classifica e stato di avanzamento per ogni membro
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="font-bold">Nome</TableHead>
-                      <TableHead className="text-center font-bold">Regalo</TableHead>
-                      <TableHead className="text-center font-bold">Fisico</TableHead>
-                      <TableHead className="text-center font-bold">Quiz</TableHead>
-                      <TableHead className="text-right font-bold">Tempo (sec)</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {participants
-                      .sort((a, b) => {
-                        // Sort by quiz completion and time
-                        if (a.quiz_completed && !b.quiz_completed) return -1;
-                        if (!a.quiz_completed && b.quiz_completed) return 1;
-                        if (a.quiz_completed && b.quiz_completed) {
-                          return (a.quiz_time || 999) - (b.quiz_time || 999);
-                        }
-                        return 0;
-                      })
-                      .map((participant, index) => (
-                        <TableRow key={participant.id}>
-                          <TableCell className="font-medium">
-                            {index + 1}. {participant.full_name}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            {participant.has_uploaded_gift ? (
-                              <Badge className="bg-green-100 text-green-700">✓</Badge>
-                            ) : (
-                              <Badge variant="secondary">✗</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            {participant.gift_is_physical ? (
-                              <Badge className="bg-blue-100 text-blue-700">Sì</Badge>
-                            ) : (
-                              <Badge variant="secondary">No</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            {participant.quiz_completed ? (
-                              <Badge className="bg-green-100 text-green-700">✓</Badge>
-                            ) : (
-                              <Badge variant="secondary">✗</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right font-mono">
-                            {participant.quiz_time ? participant.quiz_time.toFixed(1) : '-'}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* TAB 4: QUIZ */}
-          <TabsContent value="quiz" className="mt-4">
-            <Card className="bg-white border-border/50 shadow-xl">
-              <CardHeader>
-                <CardTitle className="text-[#da2c38] font-extrabold font-display" style={{ fontWeight: 800 }}>
-                  Configurazione Quiz
-                </CardTitle>
-                <CardDescription>
-                  Crea o modifica la domanda a risposta multipla (5 opzioni)
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-gray-700">Domanda</label>
-                  <Input
-                    value={quizQuestion}
-                    onChange={(e) => setQuizQuestion(e.target.value)}
-                    placeholder="Es: Qual è il colore del cavallo bianco di Napoleone?"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-700">Opzione A</label>
-                    <Input
-                      value={optionA}
-                      onChange={(e) => setOptionA(e.target.value)}
-                      placeholder="Prima risposta"
+                      {correctAnswer === option.value && <CheckCircle2 size={16} />}
+                    </button>
+                    <input
+                      type="text"
+                      value={option.state}
+                      onChange={(e) => option.setState(e.target.value)}
+                      className={`flex-1 bg-slate-900 border rounded-lg p-3 text-white focus:ring-2 focus:ring-purple-500 outline-none ${correctAnswer === option.value ? 'border-green-500/50' : 'border-white/10'}`}
+                      placeholder={`Risposta ${option.value}`}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-700">Opzione B</label>
-                    <Input
-                      value={optionB}
-                      onChange={(e) => setOptionB(e.target.value)}
-                      placeholder="Seconda risposta"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-700">Opzione C</label>
-                    <Input
-                      value={optionC}
-                      onChange={(e) => setOptionC(e.target.value)}
-                      placeholder="Terza risposta"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-700">Opzione D</label>
-                    <Input
-                      value={optionD}
-                      onChange={(e) => setOptionD(e.target.value)}
-                      placeholder="Quarta risposta"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-700">Opzione E</label>
-                    <Input
-                      value={optionE}
-                      onChange={(e) => setOptionE(e.target.value)}
-                      placeholder="Quinta risposta"
-                    />
-                  </div>
+                ))}
+              </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-700">Risposta Corretta</label>
-                    <select
-                      value={correctAnswer}
-                      onChange={(e) => setCorrectAnswer(e.target.value)}
-                      className="w-full h-10 px-3 rounded-md border border-input bg-white"
-                    >
-                      <option value="A">A</option>
-                      <option value="B">B</option>
-                      <option value="C">C</option>
-                      <option value="D">D</option>
-                      <option value="E">E</option>
-                    </select>
-                  </div>
-                </div>
-
-                <Button
+              <div className="pt-4">
+                <button
                   onClick={handleSaveQuiz}
                   disabled={savingQuiz}
-                  className="bg-[#226f54] text-white hover:bg-[#1a5640]"
+                  className="w-full py-4 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl shadow-lg shadow-purple-900/20 flex items-center justify-center gap-2 transition-all disabled:bg-slate-700 disabled:cursor-not-allowed"
                 >
-                  {savingQuiz ? 'Salvataggio...' : activeQuestion ? 'Aggiorna Quiz' : 'Crea Quiz'}
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                  <Save size={20} /> {savingQuiz ? 'Salvataggio...' : 'Salva Configurazione Quiz'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
-    </DashboardLayout>
+    </div>
   );
 };

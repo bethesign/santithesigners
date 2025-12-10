@@ -1,7 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { LogOut, ChevronRight, Clock, Gift, Heart, User, CheckCircle2, Monitor, Sparkles } from 'lucide-react';
+import { LogOut, ChevronRight, Clock, Gift, Heart, User, CheckCircle2, Monitor, Sparkles, AlertCircle } from 'lucide-react';
 import Snow from './Snow';
+import { QuizConfig } from './AdminDashboard';
+
+// --- TYPES ---
+interface UserDashboardProps {
+  onEnterLive?: () => void;
+  targetDate: string | null;
+  quizConfig: QuizConfig;
+  onQuizSubmit: (correct: boolean, timeTaken: number) => void;
+  // If targetDate is reached or something, we might auto-switch stages, 
+  // but for now relying on user flow or dev controls for stages is okay,
+  // except PRE_EVENT -> LIVE transition should be automatic or driven by prop.
+  isExtractionStarted?: boolean; // To allow button "Entra nella Live" only when started? No, user can enter but grid is locked.
+}
 
 // --- AVATAR DATA ---
 const AVATARS = [
@@ -80,12 +93,58 @@ const CountdownTimer = ({ label, targetDate }: { label: string, targetDate: Date
 
 // --- MAIN DASHBOARD COMPONENT ---
 
-export default function UserDashboard({ onEnterLive }: { onEnterLive?: () => void }) {
+export default function UserDashboard({ onEnterLive, targetDate, quizConfig, onQuizSubmit, isExtractionStarted }: UserDashboardProps) {
   const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
   
   // States: 'ENTRY' | 'QUIZ' | 'PRE_EVENT' | 'LIVE' | 'GIFT_ENTRY'
   const [stage, setStage] = useState<'ENTRY' | 'QUIZ' | 'PRE_EVENT' | 'LIVE' | 'GIFT_ENTRY'>('ENTRY');
+  
+  // Quiz State
+  const [quizState, setQuizState] = useState({
+    started: false,
+    startTime: 0,
+    selectedAnswer: null as number | null,
+    isSubmitted: false,
+    timeLeft: quizConfig.timeLimit
+  });
+
+  // Countdown for Quiz
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (quizState.started && !quizState.isSubmitted && quizState.timeLeft > 0) {
+      timer = setInterval(() => {
+        setQuizState(prev => ({ ...prev, timeLeft: prev.timeLeft - 1 }));
+      }, 1000);
+    } else if (quizState.timeLeft === 0 && !quizState.isSubmitted) {
+      // Time over - auto submit as wrong
+      handleQuizAnswer(-1); // -1 means no answer selected
+    }
+    return () => clearInterval(timer);
+  }, [quizState.started, quizState.isSubmitted, quizState.timeLeft]);
+
+  const handleStartQuiz = () => {
+    setQuizState({
+      ...quizState,
+      started: true,
+      startTime: Date.now(),
+      timeLeft: quizConfig.timeLimit
+    });
+  };
+
+  const handleQuizAnswer = (idx: number) => {
+    const timeTaken = (Date.now() - quizState.startTime) / 1000;
+    const isCorrect = idx === quizConfig.correctIndex;
+    
+    setQuizState(prev => ({
+      ...prev,
+      selectedAnswer: idx,
+      isSubmitted: true
+    }));
+
+    // Notify Parent (Admin Dashboard)
+    onQuizSubmit(isCorrect, timeTaken);
+  };
   
   // Gift Form State
   const [giftType, setGiftType] = useState<'physical' | 'digital'>('physical');
@@ -210,7 +269,7 @@ export default function UserDashboard({ onEnterLive }: { onEnterLive?: () => voi
                   <p className="text-slate-300">Inserisci il tuo regalo prima che scada il tempo.</p>
                 </div>
 
-                <CountdownTimer label="Chiusura Consegne" targetDate={new Date()} />
+                <CountdownTimer label="Chiusura Consegne" targetDate={targetDate ? new Date(targetDate) : new Date(Date.now() + 86400000)} />
 
                 <div className="mt-8">
                   <button 
@@ -378,7 +437,7 @@ export default function UserDashboard({ onEnterLive }: { onEnterLive?: () => voi
               </motion.div>
             )}
 
-            {/* STAGE 2: COWBOY REINDEER QUIZ */}
+            {/* STAGE 2: QUIZ */}
             {stage === 'QUIZ' && (
               <motion.div
                 key="stage-quiz"
@@ -390,30 +449,103 @@ export default function UserDashboard({ onEnterLive }: { onEnterLive?: () => voi
                 {/* Background decoration */}
                 <div className="absolute top-0 right-0 p-32 bg-amber-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
 
-                <div className="text-center relative z-10">
-                  <motion.div
-                    animate={{ rotate: [0, 5, 0, -5, 0] }}
-                    transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-                    className="mb-6"
-                  >
-                     <ReindeerCowboy />
-                  </motion.div>
+                {!quizState.started ? (
+                  <>
+                     <div className="text-center relative z-10">
+                        <motion.div
+                          animate={{ rotate: [0, 5, 0, -5, 0] }}
+                          transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+                          className="mb-6"
+                        >
+                           <ReindeerCowboy />
+                        </motion.div>
 
-                  <h3 className="text-2xl font-bold text-amber-100 mb-4 leading-tight">
-                    Sarai la renna più veloce<br/>del far west? 🤠
-                  </h3>
-                  
-                  <p className="text-amber-200/80 mb-8 max-w-md mx-auto">
-                    Fai il quiz e assicurati la possibilità di scegliere tra più regali. I più lenti riceveranno solo carbone!
-                  </p>
+                        <h3 className="text-2xl font-bold text-amber-100 mb-4 leading-tight">
+                          Pronto per la sfida? 🤠
+                        </h3>
+                        
+                        <div className="bg-black/30 p-4 rounded-xl mb-8 text-left space-y-2 border border-amber-500/10">
+                          <p className="flex items-center gap-2 text-amber-200/80 text-sm">
+                            <Clock size={16} /> Tempo limite: <span className="text-white font-bold">{quizConfig.timeLimit} secondi</span>
+                          </p>
+                          <p className="flex items-center gap-2 text-amber-200/80 text-sm">
+                            <AlertCircle size={16} /> Risposta unica: <span className="text-white font-bold">Non puoi cambiare!</span>
+                          </p>
+                        </div>
 
-                  <button 
-                    onClick={() => setStage('PRE_EVENT')} 
-                    className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white rounded-xl font-bold text-xl shadow-lg shadow-amber-900/20 transition-all transform hover:scale-[1.02] active:scale-95"
-                  >
-                    Corri! 🐎
-                  </button>
-                </div>
+                        <button 
+                          onClick={handleStartQuiz}
+                          className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white rounded-xl font-bold text-xl shadow-lg shadow-amber-900/20 transition-all transform hover:scale-[1.02] active:scale-95"
+                        >
+                          Inizia Quiz! 🐎
+                        </button>
+                     </div>
+                  </>
+                ) : (
+                  <div className="relative z-10">
+                    {/* Quiz Active Header */}
+                    <div className="flex justify-between items-center mb-6">
+                      <span className="text-amber-400 text-xs font-bold uppercase tracking-widest">Domanda 1/1</span>
+                      <div className={`flex items-center gap-2 font-mono font-bold text-xl ${quizState.timeLeft <= 5 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
+                        <Clock size={20} />
+                        00:{quizState.timeLeft.toString().padStart(2, '0')}
+                      </div>
+                    </div>
+
+                    <h3 className="text-xl font-bold text-white mb-6 leading-relaxed">
+                      {quizConfig.question}
+                    </h3>
+
+                    <div className="space-y-3">
+                      {quizConfig.answers.map((answer, idx) => {
+                         let btnClass = "bg-slate-800/50 hover:bg-slate-700/50 border-white/10";
+                         
+                         if (quizState.isSubmitted) {
+                            if (idx === quizConfig.correctIndex) {
+                              btnClass = "bg-green-600/20 border-green-500 text-green-100 ring-1 ring-green-500"; // Always show correct one
+                            } else if (quizState.selectedAnswer === idx) {
+                              btnClass = "bg-red-600/20 border-red-500 text-red-100"; // Wrong selection
+                            } else {
+                              btnClass = "opacity-50 grayscale";
+                            }
+                         }
+
+                         return (
+                          <button
+                            key={idx}
+                            disabled={quizState.isSubmitted}
+                            onClick={() => handleQuizAnswer(idx)}
+                            className={`w-full p-4 rounded-xl text-left border transition-all flex justify-between items-center ${btnClass}`}
+                          >
+                            <span>{answer}</span>
+                            {quizState.isSubmitted && idx === quizConfig.correctIndex && <CheckCircle2 className="text-green-400" size={20} />}
+                            {quizState.isSubmitted && quizState.selectedAnswer === idx && idx !== quizConfig.correctIndex && <AlertCircle className="text-red-400" size={20} />}
+                          </button>
+                         )
+                      })}
+                    </div>
+
+                    {quizState.isSubmitted && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mt-8 pt-4 border-t border-white/10"
+                      >
+                         <p className="text-center text-slate-300 mb-4 text-sm">
+                           {quizState.selectedAnswer === quizConfig.correctIndex ? 
+                             "Grande! Risposta corretta! 🎉" : 
+                             "Ahi ahi! Sarai fortunato in amore... 💔"}
+                         </p>
+                         <button 
+                           onClick={() => setStage('PRE_EVENT')}
+                           className="w-full py-3 bg-white text-slate-900 rounded-xl font-bold hover:bg-slate-200 transition-colors"
+                         >
+                           Vai all'attesa ➔
+                         </button>
+                      </motion.div>
+                    )}
+                  </div>
+                )}
               </motion.div>
             )}
 
