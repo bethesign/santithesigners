@@ -29,6 +29,7 @@ export interface DashboardData {
   } | null;
   settings: {
     gifts_deadline: string | null;
+    draw_date: string | null;
     draw_enabled: boolean;
     draw_started: boolean;
     current_turn: number;
