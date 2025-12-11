@@ -205,15 +205,29 @@ export const Admin = () => {
   const handleResetGifts = async () => {
     if (!window.confirm('ATTENZIONE: Eliminare TUTTI i regali? Questa azione è irreversibile!')) return;
 
-    const { error } = await supabase.from('gifts').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    // Delete all gifts
+    const { error: deleteError } = await supabase.from('gifts').delete().neq('id', '00000000-0000-0000-0000-000000000000');
 
-    if (error) {
-      console.error('Error resetting gifts:', error);
+    if (deleteError) {
+      console.error('Error resetting gifts:', deleteError);
       alert('Errore durante il reset dei regali');
+      return;
+    }
+
+    // Reset has_uploaded_gift flag for all users
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({ has_uploaded_gift: false })
+      .neq('id', '00000000-0000-0000-0000-000000000000');
+
+    if (updateError) {
+      console.error('Error updating users flags:', updateError);
+      alert('Regali eliminati ma errore nell\'aggiornamento utenti');
     } else {
       alert('Tutti i regali sono stati eliminati! Gli utenti possono ricaricare.');
-      refreshData();
     }
+
+    refreshData();
   };
 
   const handleResetQuizAnswers = async () => {
@@ -226,22 +240,48 @@ export const Admin = () => {
       alert('Errore durante il reset delle risposte');
     } else {
       alert('Tutte le risposte al quiz sono state eliminate! Gli utenti possono rispondere di nuovo.');
-      refreshData();
+      // Wait a bit for database to complete, then refresh
+      setTimeout(() => refreshData(), 500);
     }
   };
 
   const handleResetExtraction = async () => {
     if (!window.confirm('ATTENZIONE: Eliminare TUTTA l\'estrazione? Questa azione è irreversibile!')) return;
 
-    const { error } = await supabase.from('extraction').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    // Delete all extraction records
+    const { error: extractionError } = await supabase
+      .from('extraction')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000');
 
-    if (error) {
-      console.error('Error resetting extraction:', error);
+    if (extractionError) {
+      console.error('Error resetting extraction:', extractionError);
       alert('Errore durante il reset dell\'estrazione');
-    } else {
-      alert('Estrazione eliminata!');
-      refreshData();
+      return;
     }
+
+    // Reset settings related to extraction
+    const { error: settingsError } = await supabase
+      .from('settings')
+      .update({
+        draw_enabled: false,
+        draw_started: false,
+        current_turn: 0,
+        extraction_generated_at: null,
+        extraction_started_at: null,
+        extraction_completed_at: null
+      })
+      .eq('id', 1);
+
+    if (settingsError) {
+      console.error('Error resetting settings:', settingsError);
+      alert('Estrazione eliminata ma errore nell\'aggiornamento impostazioni');
+    } else {
+      alert('Estrazione eliminata completamente!');
+    }
+
+    // Wait a bit for database to complete, then refresh
+    setTimeout(() => refreshData(), 500);
   };
 
   const handleResetMyGift = async () => {
@@ -250,15 +290,29 @@ export const Admin = () => {
 
     if (!window.confirm('Eliminare il TUO regalo per fare test?')) return;
 
-    const { error } = await supabase.from('gifts').delete().eq('user_id', user.id);
+    // Delete my gift
+    const { error: deleteError } = await supabase.from('gifts').delete().eq('user_id', user.id);
 
-    if (error) {
-      console.error('Error resetting my gift:', error);
+    if (deleteError) {
+      console.error('Error resetting my gift:', deleteError);
       alert('Errore durante il reset del tuo regalo');
+      return;
+    }
+
+    // Reset has_uploaded_gift flag
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({ has_uploaded_gift: false })
+      .eq('id', user.id);
+
+    if (updateError) {
+      console.error('Error updating user flag:', updateError);
+      alert('Regalo eliminato ma errore nell\'aggiornamento del flag');
     } else {
       alert('Il tuo regalo è stato eliminato! Puoi ricaricare.');
-      refreshData();
     }
+
+    setTimeout(() => refreshData(), 500);
   };
 
   const handleResetMyQuiz = async () => {
@@ -274,7 +328,8 @@ export const Admin = () => {
       alert('Errore durante il reset della tua risposta');
     } else {
       alert('La tua risposta al quiz è stata eliminata! Puoi rispondere di nuovo.');
-      refreshData();
+      // Wait a bit for database to complete, then refresh
+      setTimeout(() => refreshData(), 500);
     }
   };
 
