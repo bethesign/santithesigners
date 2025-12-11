@@ -115,17 +115,46 @@ export const Admin = () => {
 
     setSavingExtractionDate(true);
 
-    const { error } = await supabase
+    const dateToSave = new Date(extractionDate).toISOString();
+    console.log('🔍 Saving extraction date:', {
+      input: extractionDate,
+      iso: dateToSave,
+      settingsId: settings?.id
+    });
+
+    // Try update first
+    const { data, error } = await supabase
       .from('settings')
-      .update({ extraction_available_date: new Date(extractionDate).toISOString() })
-      .eq('id', settings?.id);
+      .update({ extraction_available_date: dateToSave })
+      .eq('id', 1)  // Force ID = 1 (standard for singleton settings)
+      .select();
 
     if (error) {
-      console.error('Error saving extraction date:', error);
-      alert('Errore durante il salvataggio');
+      console.error('❌ Error saving extraction date:', error);
+      alert(`Errore durante il salvataggio: ${error.message}`);
+    } else if (data && data.length === 0) {
+      // No rows updated - record doesn't exist, try insert
+      console.warn('⚠️ No settings record found, creating one...');
+      const { error: insertError } = await supabase
+        .from('settings')
+        .insert({
+          id: 1,
+          gifts_deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          extraction_available_date: dateToSave
+        });
+
+      if (insertError) {
+        console.error('❌ Error inserting settings:', insertError);
+        alert(`Errore durante la creazione: ${insertError.message}`);
+      } else {
+        console.log('✅ Settings created successfully!');
+        alert('Data estrazione salvata!');
+        await refreshData();
+      }
     } else {
+      console.log('✅ Saved successfully:', data);
       alert('Data estrazione salvata!');
-      refreshData();
+      await refreshData();
     }
 
     setSavingExtractionDate(false);
