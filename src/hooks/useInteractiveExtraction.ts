@@ -97,11 +97,9 @@ export function useInteractiveExtraction(userId: string | undefined) {
         giftsQuery = giftsQuery.not('id', 'in', `(${chosenGiftIds.join(',')})`);
       }
 
-      // Escludi il mio regalo (solo se userId è definito)
-      if (userId) {
-        console.log('🚫 Excluding my gift from user:', userId);
-        giftsQuery = giftsQuery.neq('user_id', userId);
-      }
+      // NON escludiamo il proprio regalo dalla query!
+      // Il regalo dell'utente deve essere visibile ma non selezionabile
+      // (il controllo di non-selezione è fatto lato client)
 
       const { data: gifts, error: giftsError } = await giftsQuery;
 

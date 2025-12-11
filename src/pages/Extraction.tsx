@@ -35,6 +35,15 @@ export const Extraction = () => {
   }, [availableGifts]);
 
   const handleChooseKeyword = async (giftId: string) => {
+    // Trova il regalo che si sta cercando di scegliere
+    const selectedGift = giftsWithColors.find(g => g.id === giftId);
+
+    // Impedisci di scegliere il proprio regalo
+    if (selectedGift?.user_id === user?.id) {
+      alert('Non puoi scegliere il tuo regalo! 🎁');
+      return;
+    }
+
     setChoosing(true);
     const result = await chooseGift(giftId);
 
