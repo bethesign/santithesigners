@@ -154,12 +154,20 @@ export const Quiz = () => {
       const { data: allAnswers } = await supabase
         .from('quiz_answers')
         .select('user_id, is_correct, time_elapsed')
-        .eq('question_id', question.id)
-        .order('is_correct', { ascending: false, nullsFirst: false }) // corrette prima
-        .order('time_elapsed', { ascending: true }); // poi per tempo
+        .eq('question_id', question.id);
 
       if (allAnswers) {
-        const userPosition = allAnswers.findIndex(a => a.user_id === user.id);
+        // Sort manually in JavaScript to handle null values correctly
+        const sorted = [...allAnswers].sort((a, b) => {
+          // Correct answers first
+          if (a.is_correct === true && b.is_correct !== true) return -1;
+          if (a.is_correct !== true && b.is_correct === true) return 1;
+
+          // Within same correctness group, sort by time (fastest first)
+          return (a.time_elapsed || 999) - (b.time_elapsed || 999);
+        });
+
+        const userPosition = sorted.findIndex(a => a.user_id === user.id);
         setPosition(userPosition + 1);
       }
 

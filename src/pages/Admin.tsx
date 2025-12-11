@@ -365,11 +365,11 @@ export const Admin = () => {
 
   // SORTED PARTICIPANTS
   const sortedParticipants = [...participants].sort((a, b) => {
-    // 1. Correct answers first
-    if (a.quiz_is_correct && !b.quiz_is_correct) return -1;
-    if (!a.quiz_is_correct && b.quiz_is_correct) return 1;
+    // 1. Correct answers first (handle null values properly)
+    if (a.quiz_is_correct === true && b.quiz_is_correct !== true) return -1;
+    if (a.quiz_is_correct !== true && b.quiz_is_correct === true) return 1;
 
-    // 2. Sort by time (lowest first) for both correct and wrong groups
+    // 2. Within same correctness group, sort by time (lowest first)
     return (a.quiz_time || 999) - (b.quiz_time || 999);
   });
 

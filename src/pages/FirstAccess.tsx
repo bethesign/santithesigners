@@ -95,7 +95,7 @@ export const FirstAccess = () => {
 
       if (signUpError) {
         console.error('Signup error:', signUpError);
-        setError('Errore durante la creazione dell\'account. Riprova.');
+        setError(`Errore: ${signUpError.message || 'Creazione account fallita'}`);
         setLoading(false);
         return;
       }
