@@ -28,7 +28,11 @@ export const Extraction = () => {
   const [revealedGift, setRevealedGift] = useState<any>(null);
 
   // Assign colors to gifts
-  const giftsWithColors = useMemo(() => assignColorsToGifts(availableGifts), [availableGifts]);
+  const giftsWithColors = useMemo(() => {
+    console.log('📦 Available gifts:', availableGifts);
+    console.log('🎨 Gifts with colors:', assignColorsToGifts(availableGifts));
+    return assignColorsToGifts(availableGifts);
+  }, [availableGifts]);
 
   const handleChooseKeyword = async (giftId: string) => {
     setChoosing(true);

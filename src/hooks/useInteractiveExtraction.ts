@@ -84,21 +84,29 @@ export function useInteractiveExtraction(userId: string | undefined) {
         .filter(t => t.gift_id !== null)
         .map(t => t.gift_id);
 
+      console.log('🎁 Chosen gift IDs:', chosenGiftIds);
+      console.log('👤 Current userId:', userId);
+
       let giftsQuery = supabase
         .from('gifts')
         .select('id, keyword, user_id, title, type, message');
 
       // Escludi regali già scelti
       if (chosenGiftIds.length > 0) {
+        console.log('🚫 Excluding chosen gifts:', chosenGiftIds);
         giftsQuery = giftsQuery.not('id', 'in', `(${chosenGiftIds.join(',')})`);
       }
 
       // Escludi il mio regalo (solo se userId è definito)
       if (userId) {
+        console.log('🚫 Excluding my gift from user:', userId);
         giftsQuery = giftsQuery.neq('user_id', userId);
       }
 
       const { data: gifts, error: giftsError } = await giftsQuery;
+
+      console.log('✅ Available gifts loaded:', gifts);
+      console.log('❌ Gifts error:', giftsError);
 
       if (giftsError) throw giftsError;
 
