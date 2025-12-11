@@ -27,7 +27,7 @@ const AVATARS = [
   { id: 11, name: "Grinch Sly", emoji: "😏", bg: "bg-green-300" },
   { id: 12, name: "Grinch Santa", emoji: "👺", bg: "bg-green-200" },
   { id: 13, name: "Yeti", emoji: "🦍", bg: "bg-gray-100" },
-  { id: 14, name: "Merlo", emoji: "🐦‍⬛", bg: "bg-gray-900" },
+  { id: 14, name: "Merlo", emoji: "🐦‍⬛", bg: "bg-orange-200" },
   { id: 15, name: "Gufo", emoji: "🦉", bg: "bg-amber-50" },
   { id: 16, name: "Gatto Natalizio", emoji: "🐱", bg: "bg-rose-100" },
   { id: 17, name: "Cane Natalizio", emoji: "🐶", bg: "bg-yellow-100" },
