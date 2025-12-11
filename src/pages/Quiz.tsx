@@ -16,6 +16,7 @@ interface QuizQuestion {
   question_type: 'open' | 'multiple_choice';
   options?: QuizOption[];
   correct_answer?: string;
+  time_limit: number | null;
 }
 
 interface QuizOption {
@@ -35,6 +36,8 @@ export const Quiz = () => {
   const [error, setError] = useState('');
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+  const [timeExpired, setTimeExpired] = useState(false);
 
   useEffect(() => {
     async function loadQuiz() {
@@ -46,7 +49,7 @@ export const Quiz = () => {
           .from('quiz_answers')
           .select('*')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
         if (existingAnswer) {
           // Already answered - calculate position and show success
@@ -66,7 +69,7 @@ export const Quiz = () => {
           .from('quiz_questions')
           .select('*')
           .eq('is_active', true)
-          .single();
+          .maybeSingle();
 
         if (questionError || !questionData) {
           setError('Nessuna domanda disponibile al momento.');
@@ -86,22 +89,36 @@ export const Quiz = () => {
     loadQuiz();
   }, [user]);
 
-  // Timer effect quando il quiz è iniziato
+  // Timer effect - counts DOWN from time_limit and auto-submits on expiry
   useEffect(() => {
-    if (!started || submitted) return;
+    if (!started || submitted || !startTime) return;
 
     const interval = setInterval(() => {
-      if (startTime) {
-        setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      setElapsedTime(elapsed);
+
+      const limit = question?.time_limit || 60;
+      const remaining = limit - elapsed;
+      setTimeRemaining(Math.max(0, remaining));
+
+      // Auto-submit when time expires
+      if (remaining <= 0 && !timeExpired) {
+        setTimeExpired(true);
+        // If no answer selected, submit empty (will be marked as wrong)
+        if (!answer.trim()) {
+          alert('Tempo scaduto! La risposta verrà considerata errata.');
+        }
       }
-    }, 1000);
+    }, 100); // Update more frequently for smooth countdown
 
     return () => clearInterval(interval);
-  }, [started, startTime, submitted]);
+  }, [started, startTime, submitted, question?.time_limit, timeExpired, answer]);
 
   const handleStart = () => {
     setStartTime(Date.now());
     setStarted(true);
+    setTimeRemaining(question?.time_limit || 60);
+    setTimeExpired(false);
   };
 
   const handleSubmit = async () => {
@@ -250,10 +267,28 @@ export const Quiz = () => {
                         <Card className="shadow-xl bg-white border-border/50 border-t-4 border-t-[#da2c38]">
                           <CardContent className="pt-8 pb-8 flex flex-col items-center gap-6">
 
-                            {/* Timer reale */}
-                            <div className="flex items-center gap-2 text-2xl font-mono font-bold text-[#da2c38]">
-                              <Clock className="h-6 w-6 animate-pulse" />
-                              <span>{Math.floor(elapsedTime / 60).toString().padStart(2, '0')}:{(elapsedTime % 60).toString().padStart(2, '0')}</span>
+                            {/* Countdown Timer with Progress Bar */}
+                            <div className="w-full space-y-2">
+                              <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                                <motion.div
+                                  className={`h-full transition-colors ${
+                                    timeRemaining && timeRemaining > 10 ? 'bg-[#226f54]' : 'bg-[#da2c38]'
+                                  }`}
+                                  animate={{
+                                    width: `${((timeRemaining || 0) / (question?.time_limit || 60)) * 100}%`
+                                  }}
+                                />
+                              </div>
+
+                              <div className={`flex items-center justify-center gap-2 text-2xl font-mono font-bold ${
+                                timeRemaining && timeRemaining > 10 ? 'text-[#226f54]' : 'text-[#da2c38]'
+                              }`}>
+                                <Clock className={timeRemaining && timeRemaining <= 10 ? 'animate-pulse' : ''} />
+                                <span>
+                                  {Math.floor((timeRemaining || 0) / 60).toString().padStart(2, '0')}:
+                                  {((timeRemaining || 0) % 60).toString().padStart(2, '0')}
+                                </span>
+                              </div>
                             </div>
 
                             <h2 className="text-xl font-bold text-center text-[#da2c38]">
@@ -292,9 +327,9 @@ export const Quiz = () => {
                               size="lg"
                               className="w-full text-lg bg-[#226f54] text-white hover:bg-[#1a5640]"
                               onClick={handleSubmit}
-                              disabled={!answer.trim() || loading}
+                              disabled={!answer.trim() || loading || timeExpired}
                             >
-                              {loading ? 'Invio...' : 'Invia Risposta'}
+                              {loading ? 'Invio...' : timeExpired ? 'Tempo Scaduto' : 'Invia Risposta'}
                             </Button>
                           </CardContent>
                         </Card>

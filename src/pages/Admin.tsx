@@ -11,6 +11,7 @@ interface QuizQuestion {
   question_text: string;
   options: { value: string; text: string }[];
   correct_answer: string;
+  time_limit: number | null;
   is_active: boolean;
 }
 
@@ -42,6 +43,7 @@ export const Admin = () => {
   const [optionD, setOptionD] = useState('');
   const [optionE, setOptionE] = useState('');
   const [correctAnswer, setCorrectAnswer] = useState('A');
+  const [timeLimit, setTimeLimit] = useState(60); // seconds
   const [savingQuiz, setSavingQuiz] = useState(false);
   const [activeQuestion, setActiveQuestion] = useState<QuizQuestion | null>(null);
 
@@ -62,7 +64,7 @@ export const Admin = () => {
       .from('quiz_questions')
       .select('*')
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     if (question) {
       setActiveQuestion(question);
@@ -75,6 +77,7 @@ export const Admin = () => {
         setOptionE(question.options[4].text);
       }
       setCorrectAnswer(question.correct_answer || 'A');
+      setTimeLimit(question.time_limit || 60);
     }
   };
 
@@ -165,6 +168,11 @@ export const Admin = () => {
       return;
     }
 
+    if (!timeLimit || timeLimit < 10 || timeLimit > 600) {
+      alert('Il tempo limite deve essere tra 10 e 600 secondi');
+      return;
+    }
+
     setSavingQuiz(true);
 
     const options = [
@@ -182,7 +190,8 @@ export const Admin = () => {
         .update({
           question_text: quizQuestion.trim(),
           options,
-          correct_answer: correctAnswer
+          correct_answer: correctAnswer,
+          time_limit: timeLimit
         })
         .eq('id', activeQuestion.id);
 
@@ -207,6 +216,7 @@ export const Admin = () => {
           question_type: 'multiple_choice',
           options,
           correct_answer: correctAnswer,
+          time_limit: timeLimit,
           is_active: true
         });
 
@@ -502,6 +512,27 @@ export const Admin = () => {
                     />
                   </div>
                 ))}
+              </div>
+
+              {/* Time Limit */}
+              <div>
+                <label className="block text-sm font-bold text-slate-400 mb-1">
+                  Tempo Limite (secondi)
+                </label>
+                <div className="flex items-center gap-4">
+                  <input
+                    type="number"
+                    min="10"
+                    max="600"
+                    step="10"
+                    value={timeLimit}
+                    onChange={(e) => setTimeLimit(Number(e.target.value))}
+                    className="w-32 bg-slate-900 border border-white/20 rounded-lg p-3 text-white focus:ring-2 focus:ring-purple-500 outline-none"
+                  />
+                  <span className="text-slate-400 text-sm">
+                    {Math.floor(timeLimit / 60)}:{(timeLimit % 60).toString().padStart(2, '0')} min
+                  </span>
+                </div>
               </div>
 
               <div className="pt-4">
