@@ -7,7 +7,7 @@ import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Textarea } from '../components/ui/textarea';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, Trophy, ArrowLeft } from 'lucide-react';
+import { Clock, Trophy, ArrowLeft, AlertCircle, CheckCircle2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 interface QuizQuestion {
@@ -104,10 +104,7 @@ export const Quiz = () => {
       // Auto-submit when time expires
       if (remaining <= 0 && !timeExpired) {
         setTimeExpired(true);
-        // If no answer selected, submit empty (will be marked as wrong)
-        if (!answer.trim()) {
-          alert('Tempo scaduto! La risposta verrà considerata errata.');
-        }
+        alert('Tempo scaduto!');
       }
     }, 100); // Update more frequently for smooth countdown
 
@@ -220,120 +217,134 @@ export const Quiz = () => {
             {!submitted ? (
                 <motion.div
                     key="question"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="w-full"
+                    initial={{ opacity: 0, x: 100 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -100 }}
+                    className="w-full bg-gradient-to-b from-amber-900/40 to-slate-900/60 backdrop-blur-md rounded-3xl p-8 border border-amber-500/20 shadow-2xl relative overflow-hidden"
                 >
+                    {/* Background decoration */}
+                    <div className="absolute top-0 right-0 p-32 bg-amber-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+
                     {!started ? (
                       // Stato iniziale - Non iniziato
-                      <>
-                        <div className="text-center mb-8">
-                          <h1 className="text-3xl font-bold mb-2 text-white font-display">Quiz di Posizionamento ⚡️</h1>
-                          <p className="text-white/80">
-                            La correttezza della risposta determina la tua posizione.<br/>
-                            A parità di correttezza, fa fede il tempo impiegato. Sii veloce e preciso!
+                      <div className="text-center relative z-10">
+                        <h3 className="text-2xl font-bold text-amber-100 mb-4 leading-tight">
+                          Pronto per la sfida? 🤠
+                        </h3>
+
+                        <div className="bg-black/30 p-4 rounded-xl mb-8 text-left space-y-2 border border-amber-500/10">
+                          <p className="flex items-center gap-2 text-amber-200/80 text-sm">
+                            <Clock size={16} /> Tempo limite: <span className="text-white font-bold">{question?.time_limit || 60} secondi</span>
+                          </p>
+                          <p className="flex items-center gap-2 text-amber-200/80 text-sm">
+                            <AlertCircle size={16} /> Risposta unica: <span className="text-white font-bold">Non puoi cambiare!</span>
                           </p>
                         </div>
 
-                        <Card className="shadow-xl bg-white border-border/50 border-t-4 border-t-[#da2c38]">
-                          <CardContent className="pt-8 pb-8 flex flex-col items-center gap-6">
-                            <div className="text-center">
-                              <h2 className="text-2xl font-bold text-[#da2c38] mb-4">Sei pronto?</h2>
-                              <p className="text-gray-700 mb-6">
-                                Quando premerai "Inizia", il timer partirà e dovrai rispondere alla domanda il più velocemente possibile.
-                              </p>
-                              <Button
-                                size="lg"
-                                className="text-lg bg-[#226f54] text-white hover:bg-[#1a5640] px-12"
-                                onClick={handleStart}
-                              >
-                                Inizia Quiz
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </>
+                        <button
+                          onClick={handleStart}
+                          className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white rounded-xl font-bold text-xl shadow-lg shadow-amber-900/20 transition-all transform hover:scale-[1.02] active:scale-95"
+                        >
+                          Inizia Quiz! 🐎
+                        </button>
+                      </div>
                     ) : (
                       // Quiz iniziato - Mostra domanda e timer
-                      <>
-                        <div className="text-center mb-8">
-                          <h1 className="text-3xl font-bold mb-2 text-white font-display">Rispondi al Quiz! ⚡️</h1>
-                          <p className="text-white/80">
-                            Risposte corrette hanno priorità. A parità, vince il più veloce!
-                          </p>
+                      <div className="relative z-10">
+                        {/* Quiz Active Header */}
+                        <div className="flex justify-between items-center mb-6">
+                          <span className="text-amber-400 text-xs font-bold uppercase tracking-widest">Domanda 1/1</span>
+                          <div className={`flex items-center gap-2 font-mono font-bold text-xl ${
+                            timeRemaining && timeRemaining <= 5 ? 'text-red-500 animate-pulse' : 'text-white'
+                          }`}>
+                            <Clock size={20} />
+                            00:{((timeRemaining || 0) % 60).toString().padStart(2, '0')}
+                          </div>
                         </div>
 
-                        <Card className="shadow-xl bg-white border-border/50 border-t-4 border-t-[#da2c38]">
-                          <CardContent className="pt-8 pb-8 flex flex-col items-center gap-6">
+                        <h3 className="text-xl font-bold text-white mb-6 leading-relaxed">
+                          {question?.question_text || 'Caricamento domanda...'}
+                        </h3>
 
-                            {/* Countdown Timer with Progress Bar */}
-                            <div className="w-full space-y-2">
-                              <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                                <motion.div
-                                  className={`h-full transition-colors ${
-                                    timeRemaining && timeRemaining > 10 ? 'bg-[#226f54]' : 'bg-[#da2c38]'
-                                  }`}
-                                  animate={{
-                                    width: `${((timeRemaining || 0) / (question?.time_limit || 60)) * 100}%`
-                                  }}
-                                />
-                              </div>
+                        <div className="space-y-3">
+                          {question?.question_type === 'multiple_choice' && question.options ? (
+                            // Multiple choice buttons
+                            question.options.map((option, idx) => {
+                              let btnClass = "bg-slate-800/50 hover:bg-slate-700/50 border-white/10";
 
-                              <div className={`flex items-center justify-center gap-2 text-2xl font-mono font-bold ${
-                                timeRemaining && timeRemaining > 10 ? 'text-[#226f54]' : 'text-[#da2c38]'
-                              }`}>
-                                <Clock className={timeRemaining && timeRemaining <= 10 ? 'animate-pulse' : ''} />
-                                <span>
-                                  {Math.floor((timeRemaining || 0) / 60).toString().padStart(2, '0')}:
-                                  {((timeRemaining || 0) % 60).toString().padStart(2, '0')}
-                                </span>
-                              </div>
-                            </div>
+                              if (submitted) {
+                                // Find correct index
+                                const correctIdx = question.options?.findIndex(opt => opt.value === question.correct_answer) ?? -1;
+                                if (idx === correctIdx) {
+                                  btnClass = "bg-green-600/20 border-green-500 text-green-100 ring-1 ring-green-500";
+                                } else if (answer === option.value) {
+                                  btnClass = "bg-red-600/20 border-red-500 text-red-100";
+                                } else {
+                                  btnClass = "opacity-50 grayscale";
+                                }
+                              } else if (answer === option.value) {
+                                btnClass = "bg-amber-600/30 border-amber-500/50 text-white";
+                              }
 
-                            <h2 className="text-xl font-bold text-center text-[#da2c38]">
-                              {question?.question_text || 'Caricamento domanda...'}
-                            </h2>
+                              return (
+                                <button
+                                  key={idx}
+                                  disabled={submitted || timeExpired}
+                                  onClick={() => !submitted && !timeExpired && setAnswer(option.value)}
+                                  className={`w-full p-4 rounded-xl text-left border transition-all flex justify-between items-center ${btnClass}`}
+                                >
+                                  <span>{option.text}</span>
+                                  {submitted && idx === question.options?.findIndex(opt => opt.value === question.correct_answer) && (
+                                    <CheckCircle2 className="text-green-400" size={20} />
+                                  )}
+                                  {submitted && answer === option.value && answer !== question.correct_answer && (
+                                    <AlertCircle className="text-red-400" size={20} />
+                                  )}
+                                </button>
+                              );
+                            })
+                          ) : (
+                            // Open-ended question
+                            <Textarea
+                              placeholder="Scrivi la tua risposta qui..."
+                              className="min-h-[120px] text-lg bg-slate-800/50 border-white/10 text-white"
+                              value={answer}
+                              onChange={(e) => setAnswer(e.target.value)}
+                              disabled={submitted || timeExpired}
+                            />
+                          )}
+                        </div>
 
-                            {question?.question_type === 'multiple_choice' && question.options ? (
-                              // Domanda a scelta multipla
-                              <div className="w-full space-y-3">
-                                {question.options.map((option) => (
-                                  <button
-                                    key={option.value}
-                                    onClick={() => setAnswer(option.value)}
-                                    className={`w-full p-4 rounded-lg border-2 text-left transition-all ${
-                                      answer === option.value
-                                        ? 'border-[#226f54] bg-[#226f54]/10'
-                                        : 'border-gray-200 hover:border-gray-300'
-                                    }`}
-                                  >
-                                    <span className="font-bold mr-2">{option.value}.</span>
-                                    <span className="text-gray-800">{option.text}</span>
-                                  </button>
-                                ))}
-                              </div>
-                            ) : (
-                              // Domanda aperta
-                              <Textarea
-                                placeholder="Scrivi la tua risposta qui..."
-                                className="min-h-[120px] text-lg bg-gray-50"
-                                value={answer}
-                                onChange={(e) => setAnswer(e.target.value)}
-                              />
-                            )}
+                        {!submitted && (
+                          <button
+                            onClick={handleSubmit}
+                            disabled={!answer.trim() || loading || timeExpired}
+                            className="w-full mt-6 py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white rounded-xl font-bold text-lg shadow-lg shadow-amber-900/20 transition-all transform hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {loading ? 'Invio...' : timeExpired ? 'Tempo Scaduto' : 'Invia Risposta'}
+                          </button>
+                        )}
 
-                            <Button
-                              size="lg"
-                              className="w-full text-lg bg-[#226f54] text-white hover:bg-[#1a5640]"
-                              onClick={handleSubmit}
-                              disabled={!answer.trim() || loading || timeExpired}
+                        {submitted && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="mt-8 pt-4 border-t border-white/10"
+                          >
+                            <p className="text-center text-slate-300 mb-4 text-sm">
+                              {answer === question?.correct_answer
+                                ? "Grande! Risposta corretta! 🎉"
+                                : "Ahi ahi! Sarai fortunato in amore... 💔"}
+                            </p>
+                            <button
+                              onClick={() => navigate('/dashboard')}
+                              className="w-full py-3 bg-white text-slate-900 rounded-xl font-bold hover:bg-slate-200 transition-colors"
                             >
-                              {loading ? 'Invio...' : timeExpired ? 'Tempo Scaduto' : 'Invia Risposta'}
-                            </Button>
-                          </CardContent>
-                        </Card>
-                      </>
+                              Torna alla Dashboard ➔
+                            </button>
+                          </motion.div>
+                        )}
+                      </div>
                     )}
                 </motion.div>
             ) : (
