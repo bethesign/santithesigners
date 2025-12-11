@@ -234,6 +234,23 @@ export interface Database {
           updated_at?: string
         }
       }
+      live_state: {
+        Row: {
+          id: number
+          revealing_gift_id: string | null
+          revealed_at: string | null
+        }
+        Insert: {
+          id?: number
+          revealing_gift_id?: string | null
+          revealed_at?: string | null
+        }
+        Update: {
+          id?: number
+          revealing_gift_id?: string | null
+          revealed_at?: string | null
+        }
+      }
       feedback: {
         Row: {
           id: string

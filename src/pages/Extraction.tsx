@@ -19,18 +19,16 @@ export const Extraction = () => {
     myTurn,
     allTurns,
     availableGifts,
+    revealingGift,
     loading,
     error,
     chooseGift
   } = useInteractiveExtraction(user?.id);
 
   const [choosing, setChoosing] = useState(false);
-  const [revealedGift, setRevealedGift] = useState<any>(null);
 
   // Assign colors to gifts
   const giftsWithColors = useMemo(() => {
-    console.log('📦 Available gifts:', availableGifts);
-    console.log('🎨 Gifts with colors:', assignColorsToGifts(availableGifts));
     return assignColorsToGifts(availableGifts);
   }, [availableGifts]);
 
@@ -45,21 +43,18 @@ export const Extraction = () => {
     }
 
     setChoosing(true);
+
+    // Confetti happens locally when you click
+    confetti({
+      particleCount: 150,
+      spread: 100,
+      origin: { y: 0.6 },
+      colors: ['#226f54', '#da2c38', '#ffd700']
+    });
+
     const result = await chooseGift(giftId);
 
-    if (result.success) {
-      // Find the chosen gift
-      const chosenGift = giftsWithColors.find(g => g.id === giftId);
-      setRevealedGift(chosenGift);
-
-      // Confetti!
-      confetti({
-        particleCount: 150,
-        spread: 100,
-        origin: { y: 0.6 },
-        colors: ['#226f54', '#da2c38', '#ffd700']
-      });
-    } else {
+    if (!result.success) {
       alert(result.message);
     }
 
@@ -164,41 +159,38 @@ export const Extraction = () => {
         </AnimatePresence>
       </header>
 
-      {/* Main Grid */}
-      <main className="relative z-10 max-w-6xl mx-auto px-4 pb-20">
-        <motion.div
-          layout
-          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 md:gap-8"
-        >
-          <AnimatePresence>
-            {giftsWithColors.map((gift) => (
-              <motion.div
-                key={gift.id}
-                layout
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0, transition: { duration: 0.3 } }}
-              >
-                {/* Only render if not the currently selected one (to prevent duplication during layoutId transition) */}
-                {revealedGift?.id !== gift.id && (
+      {/* Main Grid - Hide while revealing */}
+      {!revealingGift && (
+        <main className="relative z-10 max-w-6xl mx-auto px-4 pb-20">
+          <motion.div
+            layout
+            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 md:gap-8"
+          >
+            <AnimatePresence>
+              {giftsWithColors.map((gift) => (
+                <motion.div
+                  key={gift.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0, transition: { duration: 0.3 } }}
+                >
                   <GiftBox
                     gift={gift}
                     onClick={() => isMyTurn && !choosing && handleChooseKeyword(gift.id)}
                     isMyTurn={isMyTurn}
                     className="w-full"
                   />
-                )}
-                {/* Placeholder to keep grid space while animating out */}
-                {revealedGift?.id === gift.id && <div className="w-full aspect-square bg-transparent" />}
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </motion.div>
-      </main>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
+        </main>
+      )}
 
-      {/* Reveal Overlay / Modal */}
+      {/* Reveal Overlay / Modal - NOW SHOWS FOR EVERYONE */}
       <AnimatePresence>
-        {revealedGift && (
+        {revealingGift && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -207,10 +199,10 @@ export const Extraction = () => {
           >
             <div className="relative w-full max-w-lg flex flex-col items-center">
 
-              {/* The "Hero" Gift */}
+              {/* The "Hero" Gift Box */}
               <div className="relative w-64 h-64 md:w-96 md:h-96 mb-8">
                 <GiftBox
-                  gift={revealedGift}
+                  gift={revealingGift}
                   isOpen={true}
                   isMyTurn={true}
                   className="w-full h-full text-2xl"
@@ -233,12 +225,26 @@ export const Extraction = () => {
                   <Sparkles size={48} />
                 </motion.div>
 
-                <h2 className="text-lg uppercase text-slate-500 font-bold mb-2">Hai scelto</h2>
+                <h2 className="text-lg uppercase text-slate-500 font-bold mb-2">
+                  {revealingGift.user.full_name} ha trovato
+                </h2>
+
+                {/* PHOTO - NEW */}
+                {revealingGift.photo_url && (
+                  <div className="mb-4 rounded-xl overflow-hidden border-4 border-gray-200">
+                    <img
+                      src={revealingGift.photo_url}
+                      alt={revealingGift.title}
+                      className="w-full h-48 object-cover"
+                    />
+                  </div>
+                )}
+
                 <div className="text-sm text-slate-400 mb-2 uppercase tracking-wider">
-                  Keyword: <strong className="text-[#226f54]">{revealedGift.keyword}</strong>
+                  Keyword: <strong className="text-[#226f54]">{revealingGift.keyword}</strong>
                 </div>
                 <div className="text-3xl md:text-5xl font-black text-[#226f54] mb-4 leading-tight">
-                  {revealedGift.title}
+                  {revealingGift.title}
                 </div>
 
                 <div className="bg-gray-50 rounded-xl p-4 mb-4 text-left">
@@ -246,31 +252,21 @@ export const Extraction = () => {
                     Tipo regalo:
                   </p>
                   <p className="text-gray-800 text-sm">
-                    {revealedGift.type === 'digital' ? '💻 Digitale' : '📦 Fisico'}
+                    {revealingGift.type === 'digital' ? '💻 Digitale' : '📦 Fisico'}
                   </p>
                 </div>
 
-                {revealedGift.message && (
+                {revealingGift.message && (
                   <div className="bg-blue-50 rounded-xl p-4 mb-6 text-left">
                     <p className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">
                       Messaggio:
                     </p>
-                    <p className="text-gray-800 text-sm italic">"{revealedGift.message}"</p>
+                    <p className="text-gray-800 text-sm italic">"{revealingGift.message}"</p>
                   </div>
                 )}
 
-                <Button
-                  onClick={() => navigate('/dashboard')}
-                  className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold text-xl hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 group"
-                >
-                  Torna alla Dashboard
-                  <motion.span
-                    animate={{ x: [0, 5, 0] }}
-                    transition={{ repeat: Infinity, duration: 1.5 }}
-                  >
-                    →
-                  </motion.span>
-                </Button>
+                {/* Modal closes automatically after 5 seconds */}
+                <p className="text-xs text-slate-400">Il prossimo turno inizierà tra poco...</p>
               </motion.div>
             </div>
 

@@ -8,6 +8,7 @@ interface Gift {
   title: string;
   type: 'digital' | 'physical';
   message: string;
+  photo_url: string | null;
 }
 
 interface ExtractionTurn {
@@ -28,6 +29,7 @@ interface ExtractionState {
   myTurn: ExtractionTurn | null;
   allTurns: ExtractionTurn[];
   availableGifts: Gift[];
+  revealingGift: (Gift & { user: { full_name: string } }) | null;
   loading: boolean;
   error: string | null;
 }
@@ -39,6 +41,7 @@ export function useInteractiveExtraction(userId: string | undefined) {
     myTurn: null,
     allTurns: [],
     availableGifts: [],
+    revealingGift: null,
     loading: true,
     error: null,
   });
@@ -84,16 +87,12 @@ export function useInteractiveExtraction(userId: string | undefined) {
         .filter(t => t.gift_id !== null)
         .map(t => t.gift_id);
 
-      console.log('🎁 Chosen gift IDs:', chosenGiftIds);
-      console.log('👤 Current userId:', userId);
-
       let giftsQuery = supabase
         .from('gifts')
-        .select('id, keyword, user_id, title, type, message');
+        .select('id, keyword, user_id, title, type, message, photo_url');
 
       // Escludi regali già scelti
       if (chosenGiftIds.length > 0) {
-        console.log('🚫 Excluding chosen gifts:', chosenGiftIds);
         giftsQuery = giftsQuery.not('id', 'in', `(${chosenGiftIds.join(',')})`);
       }
 
@@ -103,10 +102,31 @@ export function useInteractiveExtraction(userId: string | undefined) {
 
       const { data: gifts, error: giftsError } = await giftsQuery;
 
-      console.log('✅ Available gifts loaded:', gifts);
-      console.log('❌ Gifts error:', giftsError);
-
       if (giftsError) throw giftsError;
+
+      // Load live reveal state
+      const { data: liveState } = await supabase
+        .from('live_state')
+        .select('revealing_gift_id')
+        .eq('id', 1)
+        .maybeSingle();
+
+      let revealingGift = null;
+      if (liveState?.revealing_gift_id) {
+        // Load the full gift details + who chose it
+        const { data: giftData } = await supabase
+          .from('gifts')
+          .select('*, users!gifts_user_id_fkey(full_name)')
+          .eq('id', liveState.revealing_gift_id)
+          .maybeSingle();
+
+        if (giftData) {
+          revealingGift = {
+            ...giftData,
+            user: { full_name: giftData.users.full_name }
+          };
+        }
+      }
 
       setState({
         currentTurn,
@@ -114,6 +134,7 @@ export function useInteractiveExtraction(userId: string | undefined) {
         myTurn,
         allTurns: formattedTurns,
         availableGifts: gifts || [],
+        revealingGift,
         loading: false,
         error: null,
       });
@@ -147,8 +168,25 @@ export function useInteractiveExtraction(userId: string | undefined) {
       )
       .subscribe();
 
+    // Subscription to live_state for shared reveal modal
+    const liveStateSubscription = supabase
+      .channel('live_state_updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'live_state'
+        },
+        () => {
+          loadExtractionData();
+        }
+      )
+      .subscribe();
+
     return () => {
       subscription.unsubscribe();
+      liveStateSubscription.unsubscribe();
     };
   }, [userId]);
 
@@ -162,7 +200,16 @@ export function useInteractiveExtraction(userId: string | undefined) {
     }
 
     try {
-      // Aggiorna il turno con il regalo scelto
+      // 1. Set the revealing gift (triggers reveal modal for everyone)
+      await supabase
+        .from('live_state')
+        .update({ revealing_gift_id: giftId, revealed_at: new Date().toISOString() })
+        .eq('id', 1);
+
+      // 2. Wait 5 seconds for everyone to see the animation
+      await new Promise(resolve => setTimeout(resolve, 5000));
+
+      // 3. Update the extraction record (marks turn as complete)
       const { error } = await supabase
         .from('extraction')
         .update({
@@ -173,7 +220,13 @@ export function useInteractiveExtraction(userId: string | undefined) {
 
       if (error) throw error;
 
-      // Ricarica i dati
+      // 4. Clear the revealing state (closes modal for everyone)
+      await supabase
+        .from('live_state')
+        .update({ revealing_gift_id: null, revealed_at: null })
+        .eq('id', 1);
+
+      // Reload data
       await loadExtractionData();
 
       return { success: true, message: 'Regalo scelto!' };
