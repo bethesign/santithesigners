@@ -22,7 +22,8 @@ export const Extraction = () => {
     revealingGift,
     loading,
     error,
-    chooseGift
+    chooseGift,
+    closeReveal
   } = useInteractiveExtraction(user?.id);
 
   const [choosing, setChoosing] = useState(false);
@@ -226,10 +227,10 @@ export const Extraction = () => {
                 </motion.div>
 
                 <h2 className="text-lg uppercase text-slate-500 font-bold mb-2">
-                  {revealingGift.user.full_name} ha trovato
+                  {isMyTurn ? 'Hai trovato' : `${revealingGift.user.full_name} ha trovato`}
                 </h2>
 
-                {/* PHOTO - NEW */}
+                {/* PHOTO */}
                 {revealingGift.photo_url && (
                   <div className="mb-4 rounded-xl overflow-hidden border-4 border-gray-200">
                     <img
@@ -240,20 +241,8 @@ export const Extraction = () => {
                   </div>
                 )}
 
-                <div className="text-sm text-slate-400 mb-2 uppercase tracking-wider">
-                  Keyword: <strong className="text-[#226f54]">{revealingGift.keyword}</strong>
-                </div>
-                <div className="text-3xl md:text-5xl font-black text-[#226f54] mb-4 leading-tight">
+                <div className="text-3xl md:text-5xl font-black text-red-600 mb-8 leading-tight">
                   {revealingGift.title}
-                </div>
-
-                <div className="bg-gray-50 rounded-xl p-4 mb-4 text-left">
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
-                    Tipo regalo:
-                  </p>
-                  <p className="text-gray-800 text-sm">
-                    {revealingGift.type === 'digital' ? '💻 Digitale' : '📦 Fisico'}
-                  </p>
                 </div>
 
                 {revealingGift.message && (
@@ -265,8 +254,26 @@ export const Extraction = () => {
                   </div>
                 )}
 
-                {/* Modal closes automatically after 5 seconds */}
-                <p className="text-xs text-slate-400">Il prossimo turno inizierà tra poco...</p>
+                {/* Show button only for the person whose turn it is */}
+                {isMyTurn ? (
+                  <button
+                    onClick={async () => {
+                      await closeReveal();
+                      // Stay on extraction page to see next turn
+                    }}
+                    className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold text-xl hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 group"
+                  >
+                    Prossimo
+                    <motion.span
+                      animate={{ x: [0, 5, 0] }}
+                      transition={{ repeat: Infinity, duration: 1.5 }}
+                    >
+                      →
+                    </motion.span>
+                  </button>
+                ) : (
+                  <p className="text-xs text-slate-400">Aspettando che {revealingGift.user.full_name} continui...</p>
+                )}
               </motion.div>
             </div>
 

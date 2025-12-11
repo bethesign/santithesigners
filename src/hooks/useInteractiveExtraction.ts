@@ -206,10 +206,7 @@ export function useInteractiveExtraction(userId: string | undefined) {
         .update({ revealing_gift_id: giftId, revealed_at: new Date().toISOString() })
         .eq('id', 1);
 
-      // 2. Wait 5 seconds for everyone to see the animation
-      await new Promise(resolve => setTimeout(resolve, 5000));
-
-      // 3. Update the extraction record (marks turn as complete)
+      // 2. Update the extraction record (marks turn as complete)
       const { error } = await supabase
         .from('extraction')
         .update({
@@ -220,15 +217,6 @@ export function useInteractiveExtraction(userId: string | undefined) {
 
       if (error) throw error;
 
-      // 4. Clear the revealing state (closes modal for everyone)
-      await supabase
-        .from('live_state')
-        .update({ revealing_gift_id: null, revealed_at: null })
-        .eq('id', 1);
-
-      // Reload data
-      await loadExtractionData();
-
       return { success: true, message: 'Regalo scelto!' };
 
     } catch (err: any) {
@@ -237,9 +225,28 @@ export function useInteractiveExtraction(userId: string | undefined) {
     }
   };
 
+  const closeReveal = async (): Promise<{ success: boolean; message: string }> => {
+    try {
+      // Clear the revealing state (closes modal for everyone)
+      await supabase
+        .from('live_state')
+        .update({ revealing_gift_id: null, revealed_at: null })
+        .eq('id', 1);
+
+      // Reload data to show next turn
+      await loadExtractionData();
+
+      return { success: true, message: 'Chiuso!' };
+    } catch (err: any) {
+      console.error('Error closing reveal:', err);
+      return { success: false, message: err.message || 'Errore durante la chiusura' };
+    }
+  };
+
   return {
     ...state,
     chooseGift,
+    closeReveal,
     reload: loadExtractionData,
   };
 }
