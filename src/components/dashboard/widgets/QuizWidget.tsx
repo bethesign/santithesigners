@@ -26,7 +26,7 @@ export const QuizWidget = ({ onStartQuiz }: QuizWidgetProps) => {
           <ReindeerCowboy />
         </motion.div>
 
-        <h3 className="text-2xl font-extrabold font-display text-amber-100 mb-4 leading-tight" style={{ fontWeight: 800 }}>
+        <h3 className="text-2xl font-extrabold font-display text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-amber-500 font-[Spectral] italic mb-4 leading-tight" style={{ fontWeight: 800 }}>
           Sarai la renna più veloce<br />del far west? 🤠
         </h3>
 
@@ -38,7 +38,7 @@ export const QuizWidget = ({ onStartQuiz }: QuizWidgetProps) => {
           onClick={onStartQuiz}
           className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white rounded-xl font-bold text-xl shadow-lg shadow-amber-900/20 transition-all transform hover:scale-[1.02] active:scale-95"
         >
-          Corri! 🐎
+          Corri! 🦌
         </button>
       </div>
     </motion.div>

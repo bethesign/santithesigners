@@ -21,7 +21,7 @@ export const PreEventWidget = ({ targetDate }: PreEventWidgetProps) => {
         </div>
       </div>
 
-      <h3 className="text-2xl font-extrabold font-display text-white mb-2" style={{ fontWeight: 800 }}>
+      <h3 className="text-2xl font-extrabold font-display text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-amber-500 font-[Spectral] italic mb-2" style={{ fontWeight: 800 }}>
         Maglioni brutti e a te e famiglia is coming
       </h3>
       <p className="text-slate-400 mb-8">

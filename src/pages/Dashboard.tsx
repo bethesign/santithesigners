@@ -66,11 +66,8 @@ export const Dashboard = () => {
           animate={{ opacity: 1, y: 0 }}
           className="text-center space-y-2"
         >
-          <h2 className="text-3xl font-bold text-slate-100">
-            Ciao thesigner! <br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-amber-500 font-[Spectral] italic">
-              È il momento di dirci cosa porti in dono
-            </span>
+          <h2 className="font-bold font-[Spectral]" style={{ fontSize: '3rem', lineHeight: '3.5rem', color: '#ff4949' }}>
+            Ciao thesigner!
           </h2>
         </motion.div>
 

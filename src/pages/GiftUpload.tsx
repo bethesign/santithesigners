@@ -26,17 +26,14 @@ export const GiftUpload = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
-      if (giftType === 'digital') {
-        setFile(selectedFile);
-      } else {
-        setPhoto(selectedFile);
-        // Create preview
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setPhotoPreview(reader.result as string);
-        };
-        reader.readAsDataURL(selectedFile);
-      }
+      setPhoto(selectedFile);
+
+      // Create preview for both digital and physical gifts
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(selectedFile);
     }
   };
 

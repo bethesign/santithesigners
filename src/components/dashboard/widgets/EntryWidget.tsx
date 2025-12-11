@@ -17,8 +17,8 @@ export const EntryWidget = ({ targetDate, onInsertGift }: EntryWidgetProps) => {
       className="bg-slate-800/50 backdrop-blur-md rounded-3xl p-8 border border-white/10 shadow-xl"
     >
       <div className="text-center mb-8">
-        <h3 className="text-2xl font-extrabold font-display text-white mb-2" style={{ fontWeight: 800 }}>
-          Santa aspetta te! 🎅
+        <h3 className="text-2xl font-extrabold font-display text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-amber-500 font-[Spectral] italic mb-2" style={{ fontWeight: 800 }}>
+          È il momento di dirci cosa porti in dono
         </h3>
         <p className="text-slate-300">Inserisci il tuo regalo prima che scada il tempo.</p>
       </div>

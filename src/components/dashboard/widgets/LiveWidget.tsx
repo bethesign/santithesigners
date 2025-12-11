@@ -21,7 +21,7 @@ export const LiveWidget = ({ onEnterLive }: LiveWidgetProps) => {
         <Gift size={64} className="text-white drop-shadow-md" />
       </motion.div>
 
-      <h3 className="text-3xl font-black font-display text-white mb-4 uppercase tracking-wide" style={{ fontWeight: 800 }}>
+      <h3 className="text-3xl font-black font-display text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-amber-500 font-[Spectral] italic mb-4 uppercase tracking-wide" style={{ fontWeight: 800 }}>
         Ci siamo!
       </h3>
       <p className="text-red-100 text-lg mb-8 font-medium">

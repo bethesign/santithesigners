@@ -243,7 +243,7 @@ export const Quiz = () => {
                           onClick={handleStart}
                           className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white rounded-xl font-bold text-xl shadow-lg shadow-amber-900/20 transition-all transform hover:scale-[1.02] active:scale-95"
                         >
-                          Inizia Quiz! 🐎
+                          Inizia Quiz! 🧠
                         </button>
                       </div>
                     ) : (
@@ -332,7 +332,7 @@ export const Quiz = () => {
                             <p className="text-center text-slate-300 mb-4 text-sm">
                               {answer === question?.correct_answer
                                 ? "Grande! Risposta corretta! 🎉"
-                                : "Ahi ahi! Sarai fortunato in amore... 💔"}
+                                : "Magari in amore va meglio... 💔"}
                             </p>
                             <button
                               onClick={() => setSubmitted(true)}

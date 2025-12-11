@@ -18,7 +18,7 @@ interface QuizQuestion {
 export const Admin = () => {
   const navigate = useNavigate();
   const { participants, settings, loading, error, refreshData } = useAdminData();
-  const [activeTab, setActiveTab] = useState<'DEADLINES' | 'EXTRACTION' | 'PARTICIPANTS' | 'QUIZ' | 'RESET'>('EXTRACTION');
+  const [activeTab, setActiveTab] = useState<'DEADLINES' | 'EXTRACTION' | 'PARTICIPANTS' | 'QUIZ' | 'RESET'>('DEADLINES');
 
   // State for gifts deadline
   const [giftsDeadline, setGiftsDeadline] = useState(
@@ -66,6 +66,8 @@ export const Admin = () => {
       .eq('is_active', true)
       .maybeSingle();
 
+    console.log('📖 Loaded active quiz question:', question);
+
     if (question) {
       setActiveQuestion(question);
       setQuizQuestion(question.question_text);
@@ -78,6 +80,15 @@ export const Admin = () => {
       }
       setCorrectAnswer(question.correct_answer || 'A');
       setTimeLimit(question.time_limit || 60);
+      console.log('✅ Quiz state updated:', {
+        id: question.id,
+        question_text: question.question_text,
+        options: question.options,
+        correct_answer: question.correct_answer,
+        time_limit: question.time_limit
+      });
+    } else {
+      console.log('⚠️ No active quiz question found');
     }
   };
 
@@ -291,7 +302,15 @@ export const Admin = () => {
 
     if (activeQuestion) {
       // Update existing
-      const { error } = await supabase
+      console.log('🔄 Updating quiz question:', {
+        activeQuestionId: activeQuestion.id,
+        question_text: quizQuestion.trim(),
+        options,
+        correct_answer: correctAnswer,
+        time_limit: timeLimit
+      });
+
+      const { data, error } = await supabase
         .from('quiz_questions')
         .update({
           question_text: quizQuestion.trim(),
@@ -299,11 +318,17 @@ export const Admin = () => {
           correct_answer: correctAnswer,
           time_limit: timeLimit
         })
-        .eq('id', activeQuestion.id);
+        .eq('id', activeQuestion.id)
+        .select();
+
+      console.log('✅ Update result:', { data, error, rowsAffected: data?.length || 0 });
 
       if (error) {
         console.error('Error updating question:', error);
         alert('Errore durante l\'aggiornamento');
+      } else if (!data || data.length === 0) {
+        console.error('❌ UPDATE returned 0 rows - question ID not found or RLS blocking');
+        alert('Errore: la domanda non è stata trovata o i permessi sono sbagliati');
       } else {
         alert('Quiz aggiornato!');
         loadQuizData();
@@ -435,7 +460,7 @@ export const Admin = () => {
               <p className="text-slate-400 text-sm">Imposta la data e l'ora limite per l'inserimento dei regali. I membri vedranno il countdown.</p>
               <input
                 type="datetime-local"
-                className="bg-slate-900 border border-white/20 rounded-lg p-3 text-white w-full max-w-md focus:ring-2 focus:ring-indigo-500 outline-none"
+                className="bg-slate-900 border border-white/20 rounded-lg p-3 text-white w-full max-w-md focus:ring-2 focus:ring-indigo-500 outline-none [color-scheme:dark]"
                 value={giftsDeadline}
                 onChange={(e) => setGiftsDeadline(e.target.value)}
               />
@@ -460,7 +485,7 @@ export const Admin = () => {
               <p className="text-slate-400 text-sm">Imposta la data e l'ora target per il conto alla rovescia sulla dashboard utenti.</p>
               <input
                 type="datetime-local"
-                className="bg-slate-900 border border-white/20 rounded-lg p-3 text-white w-full max-w-md focus:ring-2 focus:ring-indigo-500 outline-none"
+                className="bg-slate-900 border border-white/20 rounded-lg p-3 text-white w-full max-w-md focus:ring-2 focus:ring-indigo-500 outline-none [color-scheme:dark]"
                 value={extractionDate}
                 onChange={(e) => setExtractionDate(e.target.value)}
               />
