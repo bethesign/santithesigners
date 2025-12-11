@@ -107,18 +107,30 @@ export interface Database {
         Row: {
           id: string
           question_text: string
+          question_type: 'open' | 'multiple_choice'
+          options: { value: string; text: string }[] | null
+          correct_answer: string | null
+          time_limit: number | null
           is_active: boolean
           created_at: string
         }
         Insert: {
           id?: string
           question_text: string
+          question_type?: 'open' | 'multiple_choice'
+          options?: { value: string; text: string }[] | null
+          correct_answer?: string | null
+          time_limit?: number | null
           is_active?: boolean
           created_at?: string
         }
         Update: {
           id?: string
           question_text?: string
+          question_type?: 'open' | 'multiple_choice'
+          options?: { value: string; text: string }[] | null
+          correct_answer?: string | null
+          time_limit?: number | null
           is_active?: boolean
           created_at?: string
         }
@@ -130,6 +142,8 @@ export interface Database {
           question_id: string
           answer: string
           answered_at: string
+          is_correct: boolean | null
+          time_elapsed: number | null
         }
         Insert: {
           id?: string
@@ -137,6 +151,8 @@ export interface Database {
           question_id: string
           answer: string
           answered_at?: string
+          is_correct?: boolean | null
+          time_elapsed?: number | null
         }
         Update: {
           id?: string
@@ -144,6 +160,8 @@ export interface Database {
           question_id?: string
           answer?: string
           answered_at?: string
+          is_correct?: boolean | null
+          time_elapsed?: number | null
         }
       }
       extraction: {
