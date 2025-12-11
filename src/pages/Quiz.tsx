@@ -30,6 +30,7 @@ export const Quiz = () => {
   const [question, setQuestion] = useState<QuizQuestion | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitted, setSubmitted] = useState(false);
+  const [showingResults, setShowingResults] = useState(false);
   const [started, setStarted] = useState(false);
   const [answer, setAnswer] = useState('');
   const [position, setPosition] = useState<number | null>(null);
@@ -162,20 +163,17 @@ export const Quiz = () => {
         setPosition(userPosition + 1);
       }
 
-      setSubmitted(true);
+      setShowingResults(true);
       setLoading(false);
 
-      // Trigger confetti
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
-
-      // Auto redirect after 3 seconds
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 3000);
+      // Trigger confetti only if correct
+      if (isCorrect) {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+      }
     } catch (err) {
       console.error('Error in handleSubmit:', err);
       setError('Errore imprevisto.');
@@ -272,7 +270,7 @@ export const Quiz = () => {
                             question.options.map((option, idx) => {
                               let btnClass = "bg-slate-800/50 hover:bg-slate-700/50 border-white/10";
 
-                              if (submitted) {
+                              if (showingResults) {
                                 // Find correct index
                                 const correctIdx = question.options?.findIndex(opt => opt.value === question.correct_answer) ?? -1;
                                 if (idx === correctIdx) {
@@ -289,15 +287,15 @@ export const Quiz = () => {
                               return (
                                 <button
                                   key={idx}
-                                  disabled={submitted || timeExpired}
-                                  onClick={() => !submitted && !timeExpired && setAnswer(option.value)}
+                                  disabled={showingResults || timeExpired}
+                                  onClick={() => !showingResults && !timeExpired && setAnswer(option.value)}
                                   className={`w-full p-4 rounded-xl text-left border transition-all flex justify-between items-center ${btnClass}`}
                                 >
                                   <span>{option.text}</span>
-                                  {submitted && idx === question.options?.findIndex(opt => opt.value === question.correct_answer) && (
+                                  {showingResults && idx === question.options?.findIndex(opt => opt.value === question.correct_answer) && (
                                     <CheckCircle2 className="text-green-400" size={20} />
                                   )}
-                                  {submitted && answer === option.value && answer !== question.correct_answer && (
+                                  {showingResults && answer === option.value && answer !== question.correct_answer && (
                                     <AlertCircle className="text-red-400" size={20} />
                                   )}
                                 </button>
@@ -310,12 +308,12 @@ export const Quiz = () => {
                               className="min-h-[120px] text-lg bg-slate-800/50 border-white/10 text-white"
                               value={answer}
                               onChange={(e) => setAnswer(e.target.value)}
-                              disabled={submitted || timeExpired}
+                              disabled={showingResults || timeExpired}
                             />
                           )}
                         </div>
 
-                        {!submitted && (
+                        {!showingResults && (
                           <button
                             onClick={handleSubmit}
                             disabled={!answer.trim() || loading || timeExpired}
@@ -325,7 +323,7 @@ export const Quiz = () => {
                           </button>
                         )}
 
-                        {submitted && (
+                        {showingResults && (
                           <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -337,10 +335,10 @@ export const Quiz = () => {
                                 : "Ahi ahi! Sarai fortunato in amore... 💔"}
                             </p>
                             <button
-                              onClick={() => navigate('/dashboard')}
+                              onClick={() => setSubmitted(true)}
                               className="w-full py-3 bg-white text-slate-900 rounded-xl font-bold hover:bg-slate-200 transition-colors"
                             >
-                              Torna alla Dashboard ➔
+                              Vai all'attesa ➔
                             </button>
                           </motion.div>
                         )}
