@@ -84,11 +84,21 @@ export function useInteractiveExtraction(userId: string | undefined) {
         .filter(t => t.gift_id !== null)
         .map(t => t.gift_id);
 
-      const { data: gifts, error: giftsError } = await supabase
+      let giftsQuery = supabase
         .from('gifts')
-        .select('id, keyword, user_id, title, type, message')
-        .not('id', 'in', `(${chosenGiftIds.length > 0 ? chosenGiftIds.join(',') : 'null'})`)
-        .neq('user_id', userId); // Non posso scegliere il mio regalo
+        .select('id, keyword, user_id, title, type, message');
+
+      // Escludi regali già scelti
+      if (chosenGiftIds.length > 0) {
+        giftsQuery = giftsQuery.not('id', 'in', `(${chosenGiftIds.join(',')})`);
+      }
+
+      // Escludi il mio regalo (solo se userId è definito)
+      if (userId) {
+        giftsQuery = giftsQuery.neq('user_id', userId);
+      }
+
+      const { data: gifts, error: giftsError } = await giftsQuery;
 
       if (giftsError) throw giftsError;
 
