@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 
 export const Snow = () => {
   return (
-    <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+    <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
       {[...Array(50)].map((_, i) => (
         <motion.div
           key={i}

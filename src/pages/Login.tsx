@@ -9,6 +9,7 @@ import { Button } from '../components/ui/button';
 import { InputWithIcon } from '../components/ui/InputWithIcon';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Snow } from '../components/extraction/Snow';
 
 export const Login = () => {
   const navigate = useNavigate();
