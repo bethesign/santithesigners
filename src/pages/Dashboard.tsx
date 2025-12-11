@@ -54,7 +54,7 @@ export const Dashboard = () => {
   const isLive = settings?.draw_enabled || false;
   const isAdmin = user?.role === 'admin';
   const giftsDeadline = settings?.gifts_deadline ? new Date(settings.gifts_deadline) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  const extractionDate = settings?.draw_date ? new Date(settings.draw_date) : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+  const extractionDate = settings?.extraction_available_date ? new Date(settings.extraction_available_date) : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
 
   return (
     <DashboardLayout userName={user?.full_name || 'Utente'} isLive={isLive} isAdmin={isAdmin}>

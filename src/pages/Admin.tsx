@@ -28,7 +28,7 @@ export const Admin = () => {
 
   // State for extraction date
   const [extractionDate, setExtractionDate] = useState(
-    settings?.draw_date ? new Date(settings.draw_date).toISOString().slice(0, 16) : ''
+    settings?.extraction_available_date ? new Date(settings.extraction_available_date).toISOString().slice(0, 16) : ''
   );
   const [savingExtractionDate, setSavingExtractionDate] = useState(false);
 
@@ -55,7 +55,7 @@ export const Admin = () => {
   React.useEffect(() => {
     if (settings) {
       setGiftsDeadline(settings.gifts_deadline ? new Date(settings.gifts_deadline).toISOString().slice(0, 16) : '');
-      setExtractionDate(settings.draw_date ? new Date(settings.draw_date).toISOString().slice(0, 16) : '');
+      setExtractionDate(settings.extraction_available_date ? new Date(settings.extraction_available_date).toISOString().slice(0, 16) : '');
     }
   }, [settings]);
 
@@ -117,7 +117,7 @@ export const Admin = () => {
 
     const { error } = await supabase
       .from('settings')
-      .update({ draw_date: new Date(extractionDate).toISOString() })
+      .update({ extraction_available_date: new Date(extractionDate).toISOString() })
       .eq('id', settings?.id);
 
     if (error) {
