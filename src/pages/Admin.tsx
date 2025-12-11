@@ -18,7 +18,7 @@ interface QuizQuestion {
 export const Admin = () => {
   const navigate = useNavigate();
   const { participants, settings, loading, error, refreshData } = useAdminData();
-  const [activeTab, setActiveTab] = useState<'DEADLINES' | 'EXTRACTION' | 'PARTICIPANTS' | 'QUIZ'>('EXTRACTION');
+  const [activeTab, setActiveTab] = useState<'DEADLINES' | 'EXTRACTION' | 'PARTICIPANTS' | 'QUIZ' | 'RESET'>('EXTRACTION');
 
   // State for gifts deadline
   const [giftsDeadline, setGiftsDeadline] = useState(
@@ -159,6 +159,83 @@ export const Admin = () => {
     }
 
     setTogglingExtraction(false);
+  };
+
+  // RESET FUNCTIONS (for testing)
+  const handleResetGifts = async () => {
+    if (!window.confirm('ATTENZIONE: Eliminare TUTTI i regali? Questa azione è irreversibile!')) return;
+
+    const { error } = await supabase.from('gifts').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+
+    if (error) {
+      console.error('Error resetting gifts:', error);
+      alert('Errore durante il reset dei regali');
+    } else {
+      alert('Tutti i regali sono stati eliminati! Gli utenti possono ricaricare.');
+      refreshData();
+    }
+  };
+
+  const handleResetQuizAnswers = async () => {
+    if (!window.confirm('ATTENZIONE: Eliminare TUTTE le risposte al quiz? Questa azione è irreversibile!')) return;
+
+    const { error } = await supabase.from('quiz_answers').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+
+    if (error) {
+      console.error('Error resetting quiz answers:', error);
+      alert('Errore durante il reset delle risposte');
+    } else {
+      alert('Tutte le risposte al quiz sono state eliminate! Gli utenti possono rispondere di nuovo.');
+      refreshData();
+    }
+  };
+
+  const handleResetExtraction = async () => {
+    if (!window.confirm('ATTENZIONE: Eliminare TUTTA l\'estrazione? Questa azione è irreversibile!')) return;
+
+    const { error } = await supabase.from('extraction').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+
+    if (error) {
+      console.error('Error resetting extraction:', error);
+      alert('Errore durante il reset dell\'estrazione');
+    } else {
+      alert('Estrazione eliminata!');
+      refreshData();
+    }
+  };
+
+  const handleResetMyGift = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    if (!window.confirm('Eliminare il TUO regalo per fare test?')) return;
+
+    const { error } = await supabase.from('gifts').delete().eq('user_id', user.id);
+
+    if (error) {
+      console.error('Error resetting my gift:', error);
+      alert('Errore durante il reset del tuo regalo');
+    } else {
+      alert('Il tuo regalo è stato eliminato! Puoi ricaricare.');
+      refreshData();
+    }
+  };
+
+  const handleResetMyQuiz = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    if (!window.confirm('Eliminare la TUA risposta al quiz per fare test?')) return;
+
+    const { error } = await supabase.from('quiz_answers').delete().eq('user_id', user.id);
+
+    if (error) {
+      console.error('Error resetting my quiz:', error);
+      alert('Errore durante il reset della tua risposta');
+    } else {
+      alert('La tua risposta al quiz è stata eliminata! Puoi rispondere di nuovo.');
+      refreshData();
+    }
   };
 
   // SAVE QUIZ
@@ -308,6 +385,12 @@ export const Admin = () => {
           className={`flex items-center gap-2 px-4 py-2 rounded-t-lg transition-colors ${activeTab === 'QUIZ' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400 hover:text-white'}`}
         >
           <HelpCircle size={18} /> Quiz
+        </button>
+        <button
+          onClick={() => setActiveTab('RESET')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-t-lg transition-colors ${activeTab === 'RESET' ? 'bg-red-600 text-white font-bold' : 'text-slate-400 hover:text-white'}`}
+        >
+          <XCircle size={18} /> Reset (TEST)
         </button>
       </div>
 
@@ -544,6 +627,79 @@ export const Admin = () => {
                   <Save size={20} /> {savingQuiz ? 'Salvataggio...' : 'Salva Configurazione Quiz'}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB: RESET (TEST) */}
+        {activeTab === 'RESET' && (
+          <div className="space-y-6">
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <XCircle className="text-red-400" /> Reset per Testing
+            </h2>
+            <p className="text-slate-400 text-sm">
+              ⚠️ Usa questi pulsanti SOLO per fare test. Le azioni sono IRREVERSIBILI!
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Reset personali */}
+              <div className="bg-slate-900/50 border border-white/10 rounded-xl p-6 space-y-4">
+                <h3 className="text-lg font-bold text-amber-400">Reset Personali (Solo Tu)</h3>
+
+                <button
+                  onClick={handleResetMyGift}
+                  className="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
+                >
+                  <Gift size={20} /> Reset Mio Regalo
+                </button>
+                <p className="text-xs text-slate-400">Elimina il tuo regalo per poterlo ricaricare</p>
+
+                <button
+                  onClick={handleResetMyQuiz}
+                  className="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
+                >
+                  <HelpCircle size={20} /> Reset Mia Risposta Quiz
+                </button>
+                <p className="text-xs text-slate-400">Elimina la tua risposta per rispondere di nuovo</p>
+              </div>
+
+              {/* Reset globali */}
+              <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-6 space-y-4">
+                <h3 className="text-lg font-bold text-red-400">Reset Globali (TUTTI)</h3>
+
+                <button
+                  onClick={handleResetGifts}
+                  className="w-full py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
+                >
+                  <Gift size={20} /> Reset TUTTI i Regali
+                </button>
+                <p className="text-xs text-slate-400">⚠️ Elimina TUTTI i regali di TUTTI gli utenti</p>
+
+                <button
+                  onClick={handleResetQuizAnswers}
+                  className="w-full py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
+                >
+                  <HelpCircle size={20} /> Reset TUTTE le Risposte Quiz
+                </button>
+                <p className="text-xs text-slate-400">⚠️ Elimina TUTTE le risposte al quiz di TUTTI</p>
+
+                <button
+                  onClick={handleResetExtraction}
+                  className="w-full py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
+                >
+                  <Trophy size={20} /> Reset Estrazione
+                </button>
+                <p className="text-xs text-slate-400">⚠️ Elimina tutta l'estrazione e l'ordine di apertura</p>
+              </div>
+            </div>
+
+            <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-xl p-4 text-sm text-yellow-200">
+              <p className="font-bold mb-2">💡 Suggerimento:</p>
+              <ul className="list-disc list-inside space-y-1">
+                <li>Usa i reset personali per testare il tuo flusso</li>
+                <li>Usa i reset globali solo quando necessario (es. nuova sessione test)</li>
+                <li>Dopo il reset, gli utenti possono rifare l'azione (carica regalo, quiz, etc.)</li>
+              </ul>
             </div>
           </div>
         )}
