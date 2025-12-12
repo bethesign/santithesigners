@@ -115,6 +115,7 @@ export const Dashboard = () => {
                 giftRecipient={giftRecipient}
                 myGift={gift}
                 myCity={user?.city || null}
+                currentUser={user}
               />
             )}
 

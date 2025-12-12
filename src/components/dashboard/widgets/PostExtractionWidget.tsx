@@ -1,5 +1,7 @@
-import { motion } from 'framer-motion';
-import { MapPin, Mail, ExternalLink, Copy } from 'lucide-react';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MapPin, Mail, ExternalLink, Copy, X, AlertCircle } from 'lucide-react';
+import { supabase } from '../../lib/supabase/client';
 
 interface PostExtractionWidgetProps {
   wonGift: {
@@ -27,12 +29,80 @@ interface PostExtractionWidgetProps {
     title: string;
   } | null;
   myCity: string | null;
+  currentUser: {
+    id: string;
+    full_name: string;
+    email: string;
+    is_shipping_address_complete: boolean;
+  } | null;
 }
 
-export const PostExtractionWidget = ({ wonGift, giftRecipient, myGift, myCity }: PostExtractionWidgetProps) => {
+export const PostExtractionWidget = ({ wonGift, giftRecipient, myGift, myCity, currentUser }: PostExtractionWidgetProps) => {
+  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  const [addressForm, setAddressForm] = useState({
+    contactEmail: '',
+    street: '',
+    city: '',
+    zip: '',
+    province: '',
+    notes: ''
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
   const handleCopyLink = () => {
     // In real app, copy the actual gift URL
     navigator.clipboard.writeText('Gift URL here');
+  };
+
+  const handleAddressSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!currentUser) return;
+
+    // Validation
+    if (!addressForm.contactEmail.trim()) {
+      setError('L\'email personale è obbligatoria');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(addressForm.contactEmail)) {
+      setError('Inserisci un\'email valida');
+      return;
+    }
+
+    if (!addressForm.street.trim() || !addressForm.city.trim() || !addressForm.zip.trim()) {
+      setError('Compila tutti i campi obbligatori dell\'indirizzo');
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+
+    try {
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({
+          contact_email: addressForm.contactEmail,
+          shipping_address_street: addressForm.street,
+          shipping_address_city: addressForm.city,
+          shipping_address_zip: addressForm.zip,
+          shipping_address_province: addressForm.province || null,
+          shipping_address_notes: addressForm.notes || null,
+          is_shipping_address_complete: true
+        })
+        .eq('id', currentUser.id);
+
+      if (updateError) throw updateError;
+
+      // Close modal and refresh page
+      setIsAddressModalOpen(false);
+      window.location.reload();
+    } catch (err: any) {
+      setError(err.message || 'Errore durante il salvataggio');
+      setSaving(false);
+    }
   };
 
   return (
@@ -69,6 +139,30 @@ export const PostExtractionWidget = ({ wonGift, giftRecipient, myGift, myCity }:
             <h2 className="text-2xl font-black text-slate-900 leading-tight mb-2">
               {wonGift.title}
             </h2>
+
+            {/* Warning if address not complete */}
+            {currentUser && !currentUser.is_shipping_address_complete && (
+              <div className="bg-orange-50 border-2 border-orange-400 rounded-xl p-4 mt-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="text-orange-600 shrink-0 mt-0.5" size={20} />
+                  <div className="flex-1">
+                    <p className="text-sm text-orange-900 font-semibold mb-2">
+                      ⚠️ Compila i tuoi dati per ricevere il regalo
+                    </p>
+                    <p className="text-xs text-orange-800 mb-3">
+                      Chi ti ha fatto il regalo ha bisogno del tuo indirizzo per spedirtelo!
+                    </p>
+                    <button
+                      onClick={() => setIsAddressModalOpen(true)}
+                      className="w-full py-2 bg-orange-600 text-white rounded-lg font-bold hover:bg-orange-500 transition-colors text-sm"
+                    >
+                      Compila i dati ora
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {wonGift.message && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 relative mt-4">
                 <span className="absolute -top-3 left-4 text-2xl">❝</span>
@@ -218,6 +312,157 @@ export const PostExtractionWidget = ({ wonGift, giftRecipient, myGift, myCity }:
           Ci vediamo l'anno prossimo!
         </p>
       </div>
+
+      {/* Address Completion Modal */}
+      <AnimatePresence>
+        {isAddressModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setIsAddressModalOpen(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            >
+              <div className="sticky top-0 bg-white border-b border-slate-200 p-6 flex items-center justify-between rounded-t-2xl">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-900">Completa i tuoi dati</h2>
+                  <p className="text-sm text-slate-600 mt-1">Necessari per ricevere il tuo regalo</p>
+                </div>
+                <button
+                  onClick={() => setIsAddressModalOpen(false)}
+                  className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                >
+                  <X size={24} className="text-slate-600" />
+                </button>
+              </div>
+
+              <form onSubmit={handleAddressSubmit} className="p-6 space-y-4">
+                {error && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+                    {error}
+                  </div>
+                )}
+
+                {/* Contact Email */}
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">
+                    Email Personale *
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={addressForm.contactEmail}
+                    onChange={(e) => setAddressForm({ ...addressForm, contactEmail: e.target.value })}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="tua.email@esempio.com"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">
+                    Email per essere contattato (diversa dall'email di accesso)
+                  </p>
+                </div>
+
+                {/* Street Address */}
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">
+                    Indirizzo *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={addressForm.street}
+                    onChange={(e) => setAddressForm({ ...addressForm, street: e.target.value })}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="Via/Piazza, numero civico"
+                  />
+                </div>
+
+                {/* City and ZIP */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">
+                      CAP *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={addressForm.zip}
+                      onChange={(e) => setAddressForm({ ...addressForm, zip: e.target.value })}
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      placeholder="00100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">
+                      Città *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={addressForm.city}
+                      onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      placeholder="Roma"
+                    />
+                  </div>
+                </div>
+
+                {/* Province */}
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">
+                    Provincia
+                  </label>
+                  <input
+                    type="text"
+                    value={addressForm.province}
+                    onChange={(e) => setAddressForm({ ...addressForm, province: e.target.value })}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="RM"
+                    maxLength={2}
+                  />
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">
+                    Note aggiuntive
+                  </label>
+                  <textarea
+                    value={addressForm.notes}
+                    onChange={(e) => setAddressForm({ ...addressForm, notes: e.target.value })}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                    placeholder="Citofono, piano, ecc."
+                    rows={2}
+                  />
+                </div>
+
+                <div className="pt-4 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddressModalOpen(false)}
+                    className="flex-1 py-3 bg-slate-200 text-slate-700 rounded-lg font-bold hover:bg-slate-300 transition-colors"
+                  >
+                    Annulla
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="flex-1 py-3 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {saving ? 'Salvataggio...' : 'Salva'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };
