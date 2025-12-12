@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase/client';
+import { getGiftColor } from '../utils/giftColors';
 
 interface Gift {
   id: string;
@@ -121,12 +122,17 @@ export function useInteractiveExtraction(userId: string | undefined) {
           .maybeSingle();
 
         if (giftData) {
+          // Find the index of this gift in the available gifts to assign consistent color
+          const giftIndex = (gifts || []).findIndex(g => g.id === giftData.id);
+          const colorIndex = giftIndex !== -1 ? giftIndex : 0;
+
           revealingGift = {
             ...giftData,
-            user: { full_name: giftData.users.full_name }
+            user: { full_name: giftData.users.full_name },
+            color: getGiftColor(colorIndex)
           };
           console.log('🎁 Revealing Gift Data:', revealingGift);
-          console.log('📷 Photo URL:', revealingGift.photo_url);
+          console.log('🎨 Gift Color:', revealingGift.color);
         }
       }
 

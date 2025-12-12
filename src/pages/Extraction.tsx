@@ -196,7 +196,7 @@ export const Extraction = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md"
           >
             <div className="relative w-full max-w-lg flex flex-col items-center">
 
@@ -230,29 +230,9 @@ export const Extraction = () => {
                   {revealingGift.user_id === user?.id ? 'Hai trovato' : `${revealingGift.user.full_name} ha trovato`}
                 </h2>
 
-                {/* PHOTO */}
-                {revealingGift.photo_url && (
-                  <div className="mb-4 rounded-xl overflow-hidden border-4 border-gray-200">
-                    <img
-                      src={revealingGift.photo_url}
-                      alt={revealingGift.title}
-                      className="w-full h-48 object-cover"
-                    />
-                  </div>
-                )}
-
                 <div className="text-3xl md:text-5xl font-black text-red-600 mb-8 leading-tight">
                   {revealingGift.title}
                 </div>
-
-                {revealingGift.message && (
-                  <div className="bg-blue-50 rounded-xl p-4 mb-6 text-left">
-                    <p className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">
-                      Messaggio:
-                    </p>
-                    <p className="text-gray-800 text-sm italic">"{revealingGift.message}"</p>
-                  </div>
-                )}
 
                 {/* Show button only for the person who chose this gift */}
                 {revealingGift.user_id === user?.id ? (
