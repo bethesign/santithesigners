@@ -85,8 +85,8 @@ export const Extraction = () => {
     );
   }
 
-  // If I've already extracted, show the gift
-  if (myTurn?.revealed_at && myTurn?.gift_id) {
+  // If I've already extracted AND there's no reveal in progress, show the completion message
+  if (myTurn?.revealed_at && myTurn?.gift_id && !revealingGift) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 text-slate-100 flex items-center justify-center p-4">
         <Snow />
@@ -227,7 +227,7 @@ export const Extraction = () => {
                 </motion.div>
 
                 <h2 className="text-lg uppercase text-slate-500 font-bold mb-2">
-                  {isMyTurn ? 'Hai trovato' : `${revealingGift.user.full_name} ha trovato`}
+                  {revealingGift.user_id === user?.id ? 'Hai trovato' : `${revealingGift.user.full_name} ha trovato`}
                 </h2>
 
                 {/* PHOTO */}
@@ -254,8 +254,8 @@ export const Extraction = () => {
                   </div>
                 )}
 
-                {/* Show button only for the person whose turn it is */}
-                {isMyTurn ? (
+                {/* Show button only for the person who chose this gift */}
+                {revealingGift.user_id === user?.id ? (
                   <button
                     onClick={async () => {
                       await closeReveal();

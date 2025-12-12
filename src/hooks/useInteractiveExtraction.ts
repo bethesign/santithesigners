@@ -125,6 +125,8 @@ export function useInteractiveExtraction(userId: string | undefined) {
             ...giftData,
             user: { full_name: giftData.users.full_name }
           };
+          console.log('🎁 Revealing Gift Data:', revealingGift);
+          console.log('📷 Photo URL:', revealingGift.photo_url);
         }
       }
 
