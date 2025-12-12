@@ -30,7 +30,11 @@ interface ExtractionState {
   myTurn: ExtractionTurn | null;
   allTurns: ExtractionTurn[];
   availableGifts: Gift[];
-  revealingGift: (Gift & { user: { full_name: string } }) | null;
+  revealingGift: (Gift & {
+    user: { full_name: string };
+    chosen_by_user_id: string | null;
+    chosen_by_user_name: string | null;
+  }) | null;
   loading: boolean;
   error: string | null;
 }
@@ -68,22 +72,45 @@ export function useInteractiveExtraction(userId: string | undefined) {
 
       if (turnsError) throw turnsError;
 
-      const formattedTurns: ExtractionTurn[] = (turns || []).map((t: any) => ({
-        id: t.id,
-        user_id: t.user_id,
-        gift_id: t.gift_id,
-        order_position: t.order_position,
-        revealed_at: t.revealed_at,
-        user: { full_name: t.users.full_name }
-      }));
+      // Format turns - se l'utente è in extraction, ha già fatto il quiz
+      const formattedTurns: ExtractionTurn[] = (turns || [])
+        .map((t: any) => ({
+          id: t.id,
+          user_id: t.user_id,
+          gift_id: t.gift_id,
+          order_position: t.order_position,
+          revealed_at: t.revealed_at,
+          user: { full_name: t.users.full_name }
+        }));
 
-      // 2. Trova il turno corrente (primo senza revealed_at)
+      // 4. Trova il turno corrente (primo senza revealed_at)
       const currentTurn = formattedTurns.find(t => !t.revealed_at) || null;
 
-      // 3. Trova il mio turno
+      // 5. Trova il mio turno
       const myTurn = formattedTurns.find(t => t.user_id === userId) || null;
 
-      // 4. Carica regali disponibili (non ancora scelti)
+      // Debug logging
+      console.log('🎯 Turn Calculation:', {
+        userId,
+        currentTurn: currentTurn ? {
+          user_id: currentTurn.user_id,
+          order_position: currentTurn.order_position,
+          user_name: currentTurn.user.full_name
+        } : null,
+        myTurn: myTurn ? {
+          user_id: myTurn.user_id,
+          order_position: myTurn.order_position
+        } : null,
+        isMyTurn: currentTurn?.user_id === userId,
+        allTurns: formattedTurns.map(t => ({
+          user_id: t.user_id,
+          order_position: t.order_position,
+          revealed_at: t.revealed_at,
+          user_name: t.user.full_name
+        }))
+      });
+
+      // 6. Carica regali disponibili (non ancora scelti)
       const chosenGiftIds = formattedTurns
         .filter(t => t.gift_id !== null)
         .map(t => t.gift_id);
@@ -114,11 +141,18 @@ export function useInteractiveExtraction(userId: string | undefined) {
 
       let revealingGift = null;
       if (liveState?.revealing_gift_id) {
-        // Load the full gift details + who chose it
+        // Load the full gift details + who created it
         const { data: giftData } = await supabase
           .from('gifts')
           .select('*, users!gifts_user_id_fkey(full_name)')
           .eq('id', liveState.revealing_gift_id)
+          .maybeSingle();
+
+        // Load who CHOSE this gift during extraction
+        const { data: extractionData } = await supabase
+          .from('extraction')
+          .select('user_id, users!extraction_user_id_fkey(full_name)')
+          .eq('gift_id', liveState.revealing_gift_id)
           .maybeSingle();
 
         if (giftData) {
@@ -129,10 +163,14 @@ export function useInteractiveExtraction(userId: string | undefined) {
           revealingGift = {
             ...giftData,
             user: { full_name: giftData.users.full_name },
-            color: getGiftColor(colorIndex)
+            color: getGiftColor(colorIndex),
+            // Add who chose this gift
+            chosen_by_user_id: extractionData?.user_id || null,
+            chosen_by_user_name: extractionData?.users?.full_name || null
           };
           console.log('🎁 Revealing Gift Data:', revealingGift);
           console.log('🎨 Gift Color:', revealingGift.color);
+          console.log('👤 Chosen by:', revealingGift.chosen_by_user_name);
         }
       }
 
@@ -160,9 +198,10 @@ export function useInteractiveExtraction(userId: string | undefined) {
   useEffect(() => {
     loadExtractionData();
 
-    // Realtime subscription per aggiornamenti
-    const subscription = supabase
-      .channel('extraction_updates')
+    // Single channel for all extraction updates using broadcast
+    const channel = supabase
+      .channel('extraction_room')
+      // Listen for gift selections (postgres changes)
       .on(
         'postgres_changes',
         {
@@ -170,31 +209,28 @@ export function useInteractiveExtraction(userId: string | undefined) {
           schema: 'public',
           table: 'extraction'
         },
-        () => {
+        (payload) => {
+          console.log('🔄 Extraction table changed:', payload);
           loadExtractionData();
         }
       )
-      .subscribe();
-
-    // Subscription to live_state for shared reveal modal
-    const liveStateSubscription = supabase
-      .channel('live_state_updates')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'live_state'
-        },
-        () => {
-          loadExtractionData();
-        }
-      )
-      .subscribe();
+      // Listen for broadcast messages (when someone clicks "Prossimo")
+      .on('broadcast', { event: 'reveal_closed' }, (payload) => {
+        console.log('📢 Reveal closed broadcast received:', payload);
+        loadExtractionData();
+      })
+      // Listen for gift chosen broadcast
+      .on('broadcast', { event: 'gift_chosen' }, (payload) => {
+        console.log('📢 Gift chosen broadcast received:', payload);
+        loadExtractionData();
+      })
+      .subscribe((status) => {
+        console.log('📡 Extraction channel status:', status);
+      });
 
     return () => {
-      subscription.unsubscribe();
-      liveStateSubscription.unsubscribe();
+      console.log('🔌 Unsubscribing from extraction channel');
+      channel.unsubscribe();
     };
   }, [userId]);
 
@@ -225,6 +261,15 @@ export function useInteractiveExtraction(userId: string | undefined) {
 
       if (error) throw error;
 
+      // 3. Broadcast to all clients that a gift was chosen
+      await supabase
+        .channel('extraction_room')
+        .send({
+          type: 'broadcast',
+          event: 'gift_chosen',
+          payload: { giftId, userId }
+        });
+
       return { success: true, message: 'Regalo scelto!' };
 
     } catch (err: any) {
@@ -235,11 +280,27 @@ export function useInteractiveExtraction(userId: string | undefined) {
 
   const closeReveal = async (): Promise<{ success: boolean; message: string }> => {
     try {
+      console.log('🚪 Closing reveal modal...');
+
       // Clear the revealing state (closes modal for everyone)
-      await supabase
+      const { data, error } = await supabase
         .from('live_state')
         .update({ revealing_gift_id: null, revealed_at: null })
         .eq('id', 1);
+
+      console.log('🚪 Close reveal result:', { data, error });
+
+      if (error) throw error;
+
+      // Broadcast to all clients that reveal was closed
+      console.log('📢 Sending reveal_closed broadcast...');
+      await supabase
+        .channel('extraction_room')
+        .send({
+          type: 'broadcast',
+          event: 'reveal_closed',
+          payload: { userId }
+        });
 
       // Reload data to show next turn
       await loadExtractionData();

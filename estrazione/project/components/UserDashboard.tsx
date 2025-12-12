@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { LogOut, ChevronRight, Clock, Gift, Heart, User, CheckCircle2, Monitor, Sparkles, AlertCircle } from 'lucide-react';
+import { LogOut, ChevronRight, Clock, Gift, Heart, User, CheckCircle2, Monitor, Sparkles, AlertCircle, MapPin, Mail, ExternalLink, Copy } from 'lucide-react';
 import Snow from './Snow';
 import { QuizConfig } from './AdminDashboard';
 
@@ -97,8 +97,8 @@ export default function UserDashboard({ onEnterLive, targetDate, quizConfig, onQ
   const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
   
-  // States: 'ENTRY' | 'QUIZ' | 'PRE_EVENT' | 'LIVE' | 'GIFT_ENTRY'
-  const [stage, setStage] = useState<'ENTRY' | 'QUIZ' | 'PRE_EVENT' | 'LIVE' | 'GIFT_ENTRY'>('ENTRY');
+  // States: 'ENTRY' | 'QUIZ' | 'PRE_EVENT' | 'LIVE' | 'GIFT_ENTRY' | 'POST_EVENT'
+  const [stage, setStage] = useState<'ENTRY' | 'QUIZ' | 'PRE_EVENT' | 'LIVE' | 'GIFT_ENTRY' | 'POST_EVENT'>('ENTRY');
   
   // Quiz State
   const [quizState, setQuizState] = useState({
@@ -144,6 +144,24 @@ export default function UserDashboard({ onEnterLive, targetDate, quizConfig, onQ
 
     // Notify Parent (Admin Dashboard)
     onQuizSubmit(isCorrect, timeTaken);
+  };
+  
+  // Mock Data for Post Event
+  const POST_EVENT_DATA = {
+    receivedGift: {
+      name: "Abbonamento Creative Cloud 1 Anno",
+      type: "digital" as const,
+      image: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&w=1000&auto=format&fit=crop",
+      message: "Perché so quanto ti piace Photoshop crashato! Buon Natale ❤️",
+      url: "https://adobe.com/redeem/xyz-123",
+      sender: "Babbo Natale Designer"
+    },
+    myGiftee: {
+      name: "Francesca",
+      avatar: "🧝‍♀️",
+      address: "Via delle Renne Volanti 42, 00100 Polo Nord (RM)",
+      email: "francesca.design@santa.com"
+    }
   };
   
   // Gift Form State
@@ -600,11 +618,129 @@ export default function UserDashboard({ onEnterLive, targetDate, quizConfig, onQ
 
                 <button 
                   onClick={onEnterLive}
-                  className="w-full py-5 bg-white text-red-600 rounded-xl font-black text-xl hover:bg-red-50 transition-colors shadow-xl flex items-center justify-center gap-3"
+                  className="w-full py-5 bg-white text-red-600 rounded-xl font-black text-xl hover:bg-red-50 transition-colors shadow-xl flex items-center justify-center gap-3 mb-4"
                 >
                   Entra nella Live
                   <ChevronRight strokeWidth={3} />
                 </button>
+
+                <button 
+                  onClick={() => setStage('POST_EVENT')}
+                  className="text-white/80 hover:text-white text-sm underline decoration-white/50 underline-offset-4"
+                >
+                  (Demo: Vai al Riepilogo Post-Estrazione)
+                </button>
+              </motion.div>
+            )}
+
+            {/* STAGE 5: POST EVENT DASHBOARD */}
+            {stage === 'POST_EVENT' && (
+              <motion.div
+                key="stage-post-event"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="space-y-6"
+              >
+                {/* 1. RECEIVED GIFT CARD */}
+                <div className="bg-white text-slate-900 rounded-3xl overflow-hidden shadow-2xl">
+                  {/* Header Image */}
+                  <div className="h-48 bg-slate-200 relative">
+                     <img 
+                       src={POST_EVENT_DATA.receivedGift.image} 
+                       alt={POST_EVENT_DATA.receivedGift.name} 
+                       className="w-full h-full object-cover"
+                     />
+                     <div className="absolute top-4 right-4">
+                       <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm ${POST_EVENT_DATA.receivedGift.type === 'digital' ? 'bg-blue-500 text-white' : 'bg-green-500 text-white'}`}>
+                         {POST_EVENT_DATA.receivedGift.type === 'digital' ? 'Regalo Digitale' : 'Regalo Fisico'}
+                       </span>
+                     </div>
+                  </div>
+                  
+                  <div className="p-6">
+                    <div className="mb-6">
+                      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Hai ricevuto</h3>
+                      <h2 className="text-2xl font-black text-slate-900 leading-tight mb-2">
+                        {POST_EVENT_DATA.receivedGift.name}
+                      </h2>
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 relative mt-4">
+                        <span className="absolute -top-3 left-4 text-2xl">❝</span>
+                        <p className="text-slate-700 italic font-[Spectral] text-lg relative z-10 px-2">
+                          {POST_EVENT_DATA.receivedGift.message}
+                        </p>
+                      </div>
+                    </div>
+
+                    {POST_EVENT_DATA.receivedGift.type === 'digital' && (
+                      <div className="bg-slate-100 rounded-xl p-4 border border-slate-200">
+                        <div className="flex items-center justify-between mb-2">
+                           <span className="text-xs font-bold text-slate-500 uppercase">Link di riscatto</span>
+                           <ExternalLink size={14} className="text-slate-400" />
+                        </div>
+                        <div className="flex gap-2">
+                          <input 
+                            readOnly 
+                            value={POST_EVENT_DATA.receivedGift.url || ""} 
+                            className="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-600 outline-none"
+                          />
+                          <button className="bg-slate-900 text-white p-2 rounded-lg hover:bg-slate-800 transition-colors" title="Copia">
+                            <Copy size={18} />
+                          </button>
+                        </div>
+                        <a 
+                          href={POST_EVENT_DATA.receivedGift.url || "#"} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="mt-3 block w-full py-3 bg-blue-600 text-white text-center rounded-lg font-bold hover:bg-blue-500 transition-colors"
+                        >
+                          Apri Regalo
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 2. MY GIFTEE CARD */}
+                <div className="bg-slate-800/80 backdrop-blur border border-white/10 rounded-3xl p-6 shadow-xl text-white">
+                   <div className="flex items-center gap-3 mb-6 border-b border-white/10 pb-4">
+                      <div className="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center text-2xl border border-indigo-500/30">
+                        {POST_EVENT_DATA.myGiftee.avatar}
+                      </div>
+                      <div>
+                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Hai regalato a</h3>
+                        <div className="text-xl font-bold">{POST_EVENT_DATA.myGiftee.name}</div>
+                      </div>
+                   </div>
+
+                   <div className="space-y-4">
+                      <div className="flex items-start gap-3">
+                        <MapPin className="text-red-400 shrink-0 mt-1" size={20} />
+                        <div>
+                          <span className="block text-xs text-slate-500 font-bold uppercase mb-1">Indirizzo di spedizione</span>
+                          <p className="text-slate-200 leading-relaxed font-mono text-sm bg-black/20 p-3 rounded-lg border border-white/5">
+                            {POST_EVENT_DATA.myGiftee.address}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3">
+                        <Mail className="text-yellow-400 shrink-0 mt-1" size={20} />
+                        <div>
+                          <span className="block text-xs text-slate-500 font-bold uppercase mb-1">Email</span>
+                          <p className="text-slate-200 font-mono text-sm">
+                            {POST_EVENT_DATA.myGiftee.email}
+                          </p>
+                        </div>
+                      </div>
+                   </div>
+                </div>
+
+                <div className="text-center pt-8 pb-4">
+                   <p className="text-slate-500 text-sm italic">
+                     Grazie per aver partecipato al Secret Santa! 🎅<br/>
+                     Ci vediamo l'anno prossimo!
+                   </p>
+                </div>
               </motion.div>
             )}
 
@@ -613,11 +749,12 @@ export default function UserDashboard({ onEnterLive, targetDate, quizConfig, onQ
       </main>
 
       {/* --- DEV CONTROLS (Removed in prod, useful for demo) --- */}
-      <div className="fixed bottom-4 right-4 z-50 flex gap-2 bg-black/80 p-2 rounded-lg backdrop-blur text-xs">
+      <div className="fixed bottom-4 right-4 z-50 flex flex-wrap gap-2 bg-black/80 p-2 rounded-lg backdrop-blur text-xs max-w-[200px] justify-end">
         <button onClick={() => setStage('ENTRY')} className={`px-2 py-1 rounded ${stage === 'ENTRY' ? 'bg-white text-black' : 'text-gray-400'}`}>1. Entry</button>
         <button onClick={() => setStage('QUIZ')} className={`px-2 py-1 rounded ${stage === 'QUIZ' ? 'bg-white text-black' : 'text-gray-400'}`}>2. Quiz</button>
         <button onClick={() => setStage('PRE_EVENT')} className={`px-2 py-1 rounded ${stage === 'PRE_EVENT' ? 'bg-white text-black' : 'text-gray-400'}`}>3. Wait</button>
         <button onClick={() => setStage('LIVE')} className={`px-2 py-1 rounded ${stage === 'LIVE' ? 'bg-white text-black' : 'text-gray-400'}`}>4. Live</button>
+        <button onClick={() => setStage('POST_EVENT')} className={`px-2 py-1 rounded ${stage === 'POST_EVENT' ? 'bg-white text-black' : 'text-gray-400'}`}>5. Post</button>
       </div>
 
       <footer className="text-center text-slate-600 text-sm py-8">

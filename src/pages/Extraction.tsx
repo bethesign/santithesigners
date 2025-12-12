@@ -85,8 +85,31 @@ export const Extraction = () => {
     );
   }
 
-  // If I've already extracted AND there's no reveal in progress, show the completion message
-  if (myTurn?.revealed_at && myTurn?.gift_id && !revealingGift) {
+  // Debug logging
+  console.log('🔍 Extraction State:', {
+    currentTurn,
+    isMyTurn,
+    myTurn,
+    allTurnsCount: allTurns.length,
+    availableGiftsCount: availableGifts.length,
+    revealingGift: !!revealingGift
+  });
+
+  // If extraction is completely finished (no more gifts available), show completion message
+  // Only show if ALL turns are completed (all have revealed_at)
+  const allTurnsCompleted = allTurns.length > 0 && allTurns.every(t => t.revealed_at);
+
+  console.log('🏁 Completion check:', {
+    allTurnsCompleted,
+    hasRevealingGift: !!revealingGift,
+    shouldShowCompletion: allTurnsCompleted && !revealingGift,
+    allTurns: allTurns.map(t => ({
+      user: t.user.full_name,
+      revealed: !!t.revealed_at
+    }))
+  });
+
+  if (allTurnsCompleted && !revealingGift) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 text-slate-100 flex items-center justify-center p-4">
         <Snow />
@@ -98,10 +121,10 @@ export const Extraction = () => {
           >
             <Sparkles className="h-16 w-16 text-[#ffd700] mx-auto mb-4" />
             <h1 className="text-3xl font-bold text-[#226f54] mb-4">
-              Hai già scelto il tuo regalo!
+              Estrazione Completata!
             </h1>
             <p className="text-gray-600 mb-8">
-              Puoi vedere i dettagli nella dashboard
+              Tutti i regali sono stati scelti. Torna alla dashboard per vedere i dettagli.
             </p>
             <Button
               className="bg-[#226f54] text-white hover:bg-[#1a5640]"
@@ -227,15 +250,41 @@ export const Extraction = () => {
                 </motion.div>
 
                 <h2 className="text-lg uppercase text-slate-500 font-bold mb-2">
-                  {revealingGift.user_id === user?.id ? 'Hai trovato' : `${revealingGift.user.full_name} ha trovato`}
+                  {revealingGift.chosen_by_user_id === user?.id ? 'Hai trovato' : `${revealingGift.chosen_by_user_name} ha trovato`}
                 </h2>
 
-                <div className="text-3xl md:text-5xl font-black text-red-600 mb-8 leading-tight">
+                <div className="text-3xl md:text-5xl font-black text-red-600 mb-6 leading-tight">
                   {revealingGift.title}
                 </div>
 
+                {/* Photo and Message Row */}
+                {(revealingGift.photo_url || revealingGift.message) && (
+                  <div className="flex gap-4 mb-6 w-full">
+                    {/* Photo on the left */}
+                    {revealingGift.photo_url && (
+                      <div className="flex-shrink-0 rounded-xl overflow-hidden border-4 border-gray-200">
+                        <img
+                          src={revealingGift.photo_url}
+                          alt={revealingGift.title}
+                          className="w-32 h-32 object-cover"
+                        />
+                      </div>
+                    )}
+
+                    {/* Message on the right */}
+                    {revealingGift.message && (
+                      <div className="flex-1 bg-blue-50 rounded-xl p-4 text-left">
+                        <p className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">
+                          Messaggio:
+                        </p>
+                        <p className="text-gray-800 text-sm italic">"{revealingGift.message}"</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Show button only for the person who chose this gift */}
-                {revealingGift.user_id === user?.id ? (
+                {revealingGift.chosen_by_user_id === user?.id ? (
                   <button
                     onClick={async () => {
                       await closeReveal();
@@ -252,7 +301,7 @@ export const Extraction = () => {
                     </motion.span>
                   </button>
                 ) : (
-                  <p className="text-xs text-slate-400">Aspettando che {revealingGift.user.full_name} continui...</p>
+                  <p className="text-xs text-slate-400">Aspettando che {revealingGift.chosen_by_user_name} continui...</p>
                 )}
               </motion.div>
             </div>

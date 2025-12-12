@@ -25,6 +25,7 @@ export const FirstAccess = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [userName, setUserName] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
 
   // Address fields
   const [address, setAddress] = useState({
@@ -116,30 +117,48 @@ export const FirstAccess = () => {
       return;
     }
 
+    // Validate required fields (address + contact email)
+    if (!address.via?.trim() || !address.citta?.trim() || !address.cap?.trim() || !address.provincia?.trim()) {
+      setError('Tutti i campi dell\'indirizzo sono obbligatori');
+      return;
+    }
+
+    if (!contactEmail?.trim()) {
+      setError('L\'email personale è obbligatoria');
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(contactEmail)) {
+      setError('Inserisci un\'email valida');
+      return;
+    }
+
     setLoading(true);
+    setError('');
 
     try {
-      // Update address in users table (optional)
-      if (address.via || address.citta) {
-        await supabase
-          .from('users')
-          .update({
-            shipping_address_street: address.via,
-            shipping_address_city: address.citta,
-            shipping_address_zip: address.cap,
-            shipping_address_province: address.provincia,
-            shipping_address_notes: address.note,
-            is_shipping_address_complete: !!(address.via && address.citta && address.cap),
-          })
-          .eq('id', userId);
-      }
+      // Update address and contact email in users table
+      await supabase
+        .from('users')
+        .update({
+          contact_email: contactEmail,
+          shipping_address_street: address.via,
+          shipping_address_city: address.citta,
+          shipping_address_zip: address.cap,
+          shipping_address_province: address.provincia,
+          shipping_address_notes: address.note,
+          is_shipping_address_complete: true,
+        })
+        .eq('id', userId);
 
       // Navigate to dashboard
       navigate('/dashboard');
     } catch (err) {
       console.error('Error saving address:', err);
-      // Navigate anyway since address is optional
-      navigate('/dashboard');
+      setError('Errore durante il salvataggio');
+      setLoading(false);
     }
   };
 
@@ -249,32 +268,37 @@ export const FirstAccess = () => {
                     </div>
 
                     <div className="space-y-3">
-                        <Input placeholder="Via e Numero Civico" value={address.via} onChange={e => setAddress({...address, via: e.target.value})} />
+                        <Input
+                          type="email"
+                          placeholder="Email personale *"
+                          value={contactEmail}
+                          onChange={e => setContactEmail(e.target.value)}
+                          required
+                        />
+                        <p className="text-xs text-gray-600 -mt-2">Email per essere contattato da chi ti ha fatto il regalo (diversa dall'email di accesso)</p>
+
+                        <Input placeholder="Via e Numero Civico *" value={address.via} onChange={e => setAddress({...address, via: e.target.value})} required />
                         <div className="grid grid-cols-2 gap-3">
-                            <Input placeholder="Città" value={address.citta} onChange={e => setAddress({...address, citta: e.target.value})} />
-                            <Input placeholder="CAP" value={address.cap} onChange={e => setAddress({...address, cap: e.target.value})} />
+                            <Input placeholder="Città *" value={address.citta} onChange={e => setAddress({...address, citta: e.target.value})} required />
+                            <Input placeholder="CAP *" value={address.cap} onChange={e => setAddress({...address, cap: e.target.value})} required />
                         </div>
-                        <Input placeholder="Provincia" value={address.provincia} onChange={e => setAddress({...address, provincia: e.target.value})} />
+                        <Input placeholder="Provincia *" value={address.provincia} onChange={e => setAddress({...address, provincia: e.target.value})} required />
                         <Input placeholder="Note per il corriere (opzionale)" value={address.note} onChange={e => setAddress({...address, note: e.target.value})} />
                     </div>
 
-                    <div className="flex gap-3 mt-6">
-                        <Button
-                            variant="ghost"
-                            className="flex-1"
-                            onClick={() => navigate('/dashboard')}
-                            disabled={loading}
-                        >
-                            Salta
-                        </Button>
-                        <Button
-                            className="flex-1 bg-[#226f54] text-white hover:bg-[#1a5640]"
-                            onClick={handleSave}
-                            disabled={loading}
-                        >
-                            {loading ? 'Salvataggio...' : 'Salva e Vai'}
-                        </Button>
-                    </div>
+                    {error && (
+                      <div className="text-sm text-red-500 text-center mt-4">
+                        {error}
+                      </div>
+                    )}
+
+                    <Button
+                        className="w-full mt-6 bg-[#226f54] text-white hover:bg-[#1a5640]"
+                        onClick={handleSave}
+                        disabled={loading}
+                    >
+                        {loading ? 'Salvataggio...' : 'Salva e Vai'}
+                    </Button>
                 </motion.div>
               )}
             </AnimatePresence>

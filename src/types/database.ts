@@ -17,6 +17,8 @@ export interface Database {
           city: string | null
           role: 'user' | 'admin'
           has_uploaded_gift: boolean
+          avatar_id: number
+          contact_email: string | null
           shipping_address_street: string | null
           shipping_address_city: string | null
           shipping_address_zip: string | null
@@ -33,6 +35,8 @@ export interface Database {
           city?: string | null
           role?: 'user' | 'admin'
           has_uploaded_gift?: boolean
+          avatar_id?: number
+          contact_email?: string | null
           shipping_address_street?: string | null
           shipping_address_city?: string | null
           shipping_address_zip?: string | null
@@ -49,6 +53,8 @@ export interface Database {
           city?: string | null
           role?: 'user' | 'admin'
           has_uploaded_gift?: boolean
+          avatar_id?: number
+          contact_email?: string | null
           shipping_address_street?: string | null
           shipping_address_city?: string | null
           shipping_address_zip?: string | null

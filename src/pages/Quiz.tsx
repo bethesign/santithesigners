@@ -34,6 +34,8 @@ export const Quiz = () => {
   const [started, setStarted] = useState(false);
   const [answer, setAnswer] = useState('');
   const [position, setPosition] = useState<number | null>(null);
+  const [correctAnswersCount, setCorrectAnswersCount] = useState<number>(0);
+  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [error, setError] = useState('');
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -126,9 +128,12 @@ export const Quiz = () => {
 
     try {
       // Calcola se la risposta è corretta (per multiple choice)
-      const isCorrect = question.question_type === 'multiple_choice'
+      const isAnswerCorrect = question.question_type === 'multiple_choice'
         ? answer === question.correct_answer
         : null; // Per domande aperte, null (da valutare manualmente)
+
+      // Save correctness to state
+      setIsCorrect(isAnswerCorrect);
 
       // Submit answer with time and correctness
       const { error: insertError } = await supabase
@@ -139,7 +144,7 @@ export const Quiz = () => {
           answer: answer.trim(),
           answered_at: new Date().toISOString(),
           time_elapsed: elapsedTime,
-          is_correct: isCorrect,
+          is_correct: isAnswerCorrect,
         });
 
       if (insertError) {
@@ -169,13 +174,17 @@ export const Quiz = () => {
 
         const userPosition = sorted.findIndex(a => a.user_id === user.id);
         setPosition(userPosition + 1);
+
+        // Count how many people answered correctly
+        const correctCount = allAnswers.filter(a => a.is_correct === true).length;
+        setCorrectAnswersCount(correctCount);
       }
 
       setShowingResults(true);
       setLoading(false);
 
       // Trigger confetti only if correct
-      if (isCorrect) {
+      if (isAnswerCorrect) {
         confetti({
           particleCount: 100,
           spread: 70,
@@ -354,7 +363,7 @@ export const Quiz = () => {
                     )}
                 </motion.div>
             ) : (
-                <motion.div 
+                <motion.div
                     key="success"
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
@@ -363,15 +372,21 @@ export const Quiz = () => {
                     <div className="h-24 w-24 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6 text-yellow-600 shadow-inner">
                         <Trophy className="h-12 w-12" />
                     </div>
-                    
+
                     <h1 className="text-3xl font-bold mb-4 text-white font-display">Risposta inviata!</h1>
-                    <p className="text-xl text-white mb-8">
-                        Ti sei posizionato provvisoriamente:
-                        <br/>
-                        <span className="text-4xl font-bold text-white mt-2 block">
-                          {position ? `${position}°` : '...'}
-                        </span>
-                    </p>
+
+                    <div className="mb-8">
+                      <p className="text-xl text-white mb-2">
+                        Posizione provvisoria in classifica:
+                      </p>
+                      <span className="text-5xl font-bold text-yellow-400 block">
+                        {position ? `${position}°` : '...'}
+                      </span>
+                      <p className="text-sm text-white/70 mt-3">
+                        {position === 1 ? '🏆 Attualmente primo!' : 'La classifica è ancora provvisoria'}
+                      </p>
+                    </div>
+
                     <p className="text-sm text-white/80 mb-4">
                       Redirect automatico alla dashboard...
                     </p>

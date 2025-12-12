@@ -19,8 +19,8 @@ export const SetupPage: React.FC<SetupPageProps> = ({ onNavigate, email, userDat
   const [showPasswordField, setShowPasswordField] = useState(false)
   const [showConfirmPasswordField, setShowConfirmPasswordField] = useState(false)
 
-  // Step 2 - Address (optional)
-  const [skipAddress, setSkipAddress] = useState(false)
+  // Step 2 - Address (required)
+  const [contactEmail, setContactEmail] = useState('')
   const [address, setAddress] = useState({
     street: '',
     zip: '',
@@ -127,6 +127,25 @@ export const SetupPage: React.FC<SetupPageProps> = ({ onNavigate, email, userDat
   const handleAddressSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+
+    // Validate required fields (contact email + address)
+    if (!contactEmail?.trim()) {
+      setError('L\'email personale è obbligatoria')
+      return
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(contactEmail)) {
+      setError('Inserisci un\'email valida')
+      return
+    }
+
+    if (!address.street?.trim() || !address.zip?.trim() || !address.province?.trim()) {
+      setError('Tutti i campi dell\'indirizzo sono obbligatori')
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -140,38 +159,31 @@ export const SetupPage: React.FC<SetupPageProps> = ({ onNavigate, email, userDat
         return
       }
 
-      if (!skipAddress) {
-        if (!address.street || !address.zip || !address.province) {
-          setError('Compila tutti i campi obbligatori')
-          setLoading(false)
-          return
-        }
+      console.log('Updating address for user:', user.id, email)
 
-        console.log('Updating address for user:', user.id, email)
+      // Update using user ID instead of email for RLS
+      // City viene presa da userData.city (già presente in users table)
+      const { data: updateData, error: updateError } = await supabase
+        .from('users')
+        .update({
+          contact_email: contactEmail,
+          shipping_address_street: address.street,
+          shipping_address_city: userData.city, // usa la città già presente
+          shipping_address_zip: address.zip,
+          shipping_address_province: address.province,
+          shipping_address_notes: address.notes || null,
+          is_shipping_address_complete: true,
+        })
+        .eq('id', user.id)
+        .select()
 
-        // Update using user ID instead of email for RLS
-        // City viene presa da userData.city (già presente in users table)
-        const { data: updateData, error: updateError } = await supabase
-          .from('users')
-          .update({
-            shipping_address_street: address.street,
-            shipping_address_city: userData.city, // usa la città già presente
-            shipping_address_zip: address.zip,
-            shipping_address_province: address.province,
-            shipping_address_notes: address.notes || null,
-            is_shipping_address_complete: true,
-          })
-          .eq('id', user.id)
-          .select()
+      console.log('Update result:', { updateData, updateError })
 
-        console.log('Update result:', { updateData, updateError })
-
-        if (updateError) {
-          console.error('Update error:', updateError)
-          setError('Errore salvataggio indirizzo: ' + updateError.message)
-          setLoading(false)
-          return
-        }
+      if (updateError) {
+        console.error('Update error:', updateError)
+        setError('Errore salvataggio indirizzo: ' + updateError.message)
+        setLoading(false)
+        return
       }
 
       onNavigate('dashboard')
@@ -209,7 +221,7 @@ export const SetupPage: React.FC<SetupPageProps> = ({ onNavigate, email, userDat
             Ti diamo il benvenuto, {userData.full_name}! 👋
           </h2>
           <p className="text-white text-lg drop-shadow-md">
-            {step === 1 ? 'Crea la tua password' : 'Inserisci il tuo indirizzo (opzionale)'}
+            {step === 1 ? 'Crea la tua password' : 'Inserisci il tuo indirizzo'}
           </p>
         </div>
 
@@ -324,7 +336,7 @@ export const SetupPage: React.FC<SetupPageProps> = ({ onNavigate, email, userDat
           ) : (
             <form onSubmit={handleAddressSubmit} className="space-y-6">
               <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-md text-sm">
-                Necessario solo se riceverai un regalo fisico da un collega in un'altra città. Puoi compilarlo dopo.
+                Necessario per ricevere regali fisici. Tutti i campi sono obbligatori.
               </div>
 
               {/* Info Città precompilata */}
@@ -334,35 +346,51 @@ export const SetupPage: React.FC<SetupPageProps> = ({ onNavigate, email, userDat
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Via e Numero civico</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Email personale *</label>
+                <input
+                  type="email"
+                  value={contactEmail}
+                  onChange={(e) => setContactEmail(e.target.value)}
+                  className="block w-full px-3 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-christmas-green"
+                  placeholder="email@esempio.com"
+                  required
+                />
+                <p className="text-xs text-gray-600 mt-1">Email per essere contattato da chi ti ha fatto il regalo (diversa dall'email di accesso)</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Via e Numero civico *</label>
                 <input
                   type="text"
                   value={address.street}
                   onChange={(e) => setAddress({ ...address, street: e.target.value })}
                   className="block w-full px-3 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-christmas-green"
                   placeholder="Via Roma, 123"
+                  required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">CAP</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">CAP *</label>
                   <input
                     type="text"
                     value={address.zip}
                     onChange={(e) => setAddress({ ...address, zip: e.target.value })}
                     className="block w-full px-3 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-christmas-green"
                     placeholder="20100"
+                    required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Provincia</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Provincia *</label>
                   <input
                     type="text"
                     value={address.province}
                     onChange={(e) => setAddress({ ...address, province: e.target.value })}
                     className="block w-full px-3 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-christmas-green"
                     placeholder="MI"
+                    required
                   />
                 </div>
               </div>
@@ -380,26 +408,13 @@ export const SetupPage: React.FC<SetupPageProps> = ({ onNavigate, email, userDat
 
               {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">{error}</div>}
 
-              <div className="space-y-3">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-christmas-red hover:bg-red-600 text-white font-bold py-3 px-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all disabled:opacity-50"
-                >
-                  {loading ? 'Salvataggio...' : 'Salva Indirizzo'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSkipAddress(true)
-                    handleAddressSubmit(new Event('submit') as any)
-                  }}
-                  disabled={loading}
-                  className="w-full bg-white hover:bg-gray-50 text-gray-700 font-semibold py-3 px-4 rounded-full border-2 border-gray-300 transition-all disabled:opacity-50"
-                >
-                  Compila in seguito
-                </button>
-              </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-christmas-red hover:bg-red-600 text-white font-bold py-3 px-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all disabled:opacity-50"
+              >
+                {loading ? 'Salvataggio...' : 'Salva e Continua'}
+              </button>
             </form>
           )}
         </div>

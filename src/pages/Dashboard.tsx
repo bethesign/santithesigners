@@ -7,11 +7,12 @@ import { EntryWidget } from '../components/dashboard/widgets/EntryWidget';
 import { QuizWidget } from '../components/dashboard/widgets/QuizWidget';
 import { PreEventWidget } from '../components/dashboard/widgets/PreEventWidget';
 import { LiveWidget } from '../components/dashboard/widgets/LiveWidget';
+import { PostExtractionWidget } from '../components/dashboard/widgets/PostExtractionWidget';
 import { motion } from 'framer-motion';
 
 export const Dashboard = () => {
   const navigate = useNavigate();
-  const { user, gift, quizAnswer, settings, loading, error } = useUserDashboard();
+  const { user, gift, quizAnswer, wonGift, giftRecipient, settings, myTurn, loading, error } = useUserDashboard();
 
   // Determine current stage based on user progress and settings
   const currentStage = useMemo(() => {
@@ -24,9 +25,12 @@ export const Dashboard = () => {
     // Stage 3: PRE_EVENT - Waiting for extraction to start
     if (!settings?.draw_enabled) return 'PRE_EVENT';
 
+    // Stage 5: POST_EXTRACTION - User has won a gift
+    if (wonGift) return 'POST_EXTRACTION';
+
     // Stage 4: LIVE - Extraction is live
     return 'LIVE';
-  }, [gift, quizAnswer, settings]);
+  }, [gift, quizAnswer, wonGift, settings]);
 
   if (loading) {
     return (
@@ -101,6 +105,16 @@ export const Dashboard = () => {
             {currentStage === 'LIVE' && (
               <LiveWidget
                 onEnterLive={() => navigate('/extraction')}
+              />
+            )}
+
+            {/* Stage 5: POST_EXTRACTION */}
+            {currentStage === 'POST_EXTRACTION' && wonGift && (
+              <PostExtractionWidget
+                wonGift={wonGift}
+                giftRecipient={giftRecipient}
+                myGift={gift}
+                myCity={user?.city || null}
               />
             )}
 

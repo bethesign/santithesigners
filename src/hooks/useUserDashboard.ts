@@ -23,9 +23,24 @@ export interface DashboardData {
     answered_at: string;
     position: number; // Calculated position based on speed
   } | null;
-  receivedGift: {
-    giver_name: string;
-    gift: any;
+  wonGift: {
+    id: string;
+    title: string;
+    type: 'digital' | 'physical';
+    message: string | null;
+    photo_url: string | null;
+    keyword: string;
+  } | null;
+  giftRecipient: {
+    full_name: string;
+    email: string;
+    contact_email: string | null;
+    address: string | null;
+    city: string | null;
+    postal_code: string | null;
+    province: string | null;
+    notes: string | null;
+    is_complete: boolean;
   } | null;
   settings: {
     gifts_deadline: string | null;
@@ -49,7 +64,8 @@ export function useUserDashboard() {
     user: null,
     gift: null,
     quizAnswer: null,
-    receivedGift: null,
+    wonGift: null,
+    giftRecipient: null,
     settings: null,
     myTurn: null,
     loading: true,
@@ -112,26 +128,67 @@ export function useUserDashboard() {
           .eq('user_id', user.id)
           .maybeSingle();
 
-        // Fetch received gift (if revealed)
-        let receivedGift = null;
-        if (settingsData?.draw_enabled) {
-          const { data: receivedData } = await supabase
+        // Fetch the gift I won (the gift I selected during extraction)
+        let wonGift = null;
+        if (extractionData?.revealed_at) {
+          const { data: myExtraction } = await supabase
+            .from('extraction')
+            .select(`
+              gift_id,
+              gifts!inner(id, title, type, message, photo_url, keyword)
+            `)
+            .eq('user_id', user.id)
+            .not('revealed_at', 'is', null)
+            .maybeSingle();
+
+          if (myExtraction && myExtraction.gifts) {
+            wonGift = myExtraction.gifts as any;
+          }
+        }
+
+        // Fetch the person who will receive my gift (who won my gift during extraction)
+        let giftRecipient = null;
+        if (giftData && settingsData?.draw_enabled) {
+          console.log('🔍 Looking for recipient of my gift:', giftData.id);
+
+          const { data: recipientData, error: recipientError } = await supabase
             .from('extraction')
             .select(`
               user_id,
-              revealed_at,
-              users!extraction_user_id_fkey(full_name),
-              gifts:gifts!inner(*)
+              users!extraction_user_id_fkey(
+                full_name,
+                email,
+                contact_email,
+                shipping_address_street,
+                shipping_address_city,
+                shipping_address_zip,
+                shipping_address_province,
+                shipping_address_notes,
+                is_shipping_address_complete
+              )
             `)
-            .eq('receiver_id', user.id)
+            .eq('gift_id', giftData.id)
             .not('revealed_at', 'is', null)
-            .single();
+            .maybeSingle();
 
-          if (receivedData) {
-            receivedGift = {
-              giver_name: (receivedData.users as any)?.full_name || 'Anonimo',
-              gift: receivedData.gifts,
+          console.log('🔍 Recipient query result:', { recipientData, recipientError });
+
+          if (recipientData && recipientData.users) {
+            const userData = recipientData.users as any;
+            giftRecipient = {
+              full_name: userData.full_name,
+              email: userData.email,
+              contact_email: userData.contact_email || null,
+              address: userData.shipping_address_street || null,
+              city: userData.shipping_address_city || null,
+              postal_code: userData.shipping_address_zip || null,
+              province: userData.shipping_address_province || null,
+              notes: userData.shipping_address_notes || null,
+              is_complete: userData.is_shipping_address_complete || false
             };
+            console.log('✅ Gift recipient found:', giftRecipient);
+          } else {
+            console.log('❌ No recipient found for gift:', giftData.id);
           }
         }
 
@@ -139,7 +196,8 @@ export function useUserDashboard() {
           user: userData,
           gift: giftData,
           quizAnswer: quizData ? { ...quizData, position: quizPosition || 0 } : null,
-          receivedGift,
+          wonGift,
+          giftRecipient,
           settings: settingsData,
           myTurn: extractionData,
           loading: false,
@@ -177,7 +235,7 @@ export function useUserDashboard() {
           event: 'UPDATE',
           schema: 'public',
           table: 'extraction',
-          filter: `receiver_id=eq.${user.id}`,
+          filter: `user_id=eq.${user.id}`,
         },
         () => {
           fetchDashboardData();

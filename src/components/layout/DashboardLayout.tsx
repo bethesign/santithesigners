@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LogOut } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Snow } from '../extraction/Snow';
+import { supabase } from '../../lib/supabase/client';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -26,7 +27,7 @@ const AVATARS = [
   { id: 10, name: "Grinch", emoji: "🤢", bg: "bg-lime-200" },
   { id: 11, name: "Grinch Sly", emoji: "😏", bg: "bg-green-300" },
   { id: 12, name: "Grinch Santa", emoji: "👺", bg: "bg-green-200" },
-  { id: 13, name: "Yeti", emoji: "🦍", bg: "bg-gray-100" },
+  { id: 13, name: "Pagliaccio", emoji: "🤡", bg: "bg-gray-100" },
   { id: 14, name: "Merlo", emoji: "🐦‍⬛", bg: "bg-orange-200" },
   { id: 15, name: "Gufo", emoji: "🦉", bg: "bg-amber-50" },
   { id: 16, name: "Gatto Natalizio", emoji: "🐱", bg: "bg-rose-100" },
@@ -37,10 +38,54 @@ const AVATARS = [
 ];
 
 export const DashboardLayout = ({ children, userName, isLive = false, isAdmin = false }: DashboardLayoutProps) => {
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const navigate = useNavigate();
   const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
+
+  // Load user's saved avatar
+  useEffect(() => {
+    async function loadAvatar() {
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('users')
+        .select('avatar_id')
+        .eq('id', user.id)
+        .single();
+
+      console.log('🎭 Avatar loading:', { data, error, userId: user.id });
+
+      if (data?.avatar_id) {
+        const avatar = AVATARS.find(a => a.id === data.avatar_id);
+        console.log('🎭 Found avatar:', avatar);
+        if (avatar) {
+          setSelectedAvatar(avatar);
+        }
+      } else {
+        console.log('🎭 No avatar_id found in database, using default');
+      }
+    }
+
+    loadAvatar();
+  }, [user]);
+
+  // Save avatar to database when changed
+  const handleAvatarChange = async (avatar: typeof AVATARS[0]) => {
+    setSelectedAvatar(avatar);
+    setIsAvatarMenuOpen(false);
+
+    if (user) {
+      console.log('🎭 Saving avatar:', { avatarId: avatar.id, avatarName: avatar.name, userId: user.id });
+      const { data, error } = await supabase
+        .from('users')
+        .update({ avatar_id: avatar.id })
+        .eq('id', user.id)
+        .select();
+
+      console.log('🎭 Save result:', { data, error });
+    }
+  };
 
   const handleLogout = async () => {
     await signOut();
@@ -87,10 +132,7 @@ export const DashboardLayout = ({ children, userName, isLive = false, isAdmin = 
                   {AVATARS.map((avatar) => (
                     <button
                       key={avatar.id}
-                      onClick={() => {
-                        setSelectedAvatar(avatar);
-                        setIsAvatarMenuOpen(false);
-                      }}
+                      onClick={() => handleAvatarChange(avatar)}
                       className={`aspect-square rounded-lg flex items-center justify-center text-2xl hover:scale-110 transition-transform ${avatar.bg} ${selectedAvatar.id === avatar.id ? 'ring-2 ring-yellow-400' : ''}`}
                       title={avatar.name}
                     >
