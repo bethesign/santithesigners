@@ -105,14 +105,15 @@ export const Quiz = () => {
       setTimeRemaining(Math.max(0, remaining));
 
       // Auto-submit when time expires
-      if (remaining <= 0 && !timeExpired) {
+      if (remaining <= 0 && !timeExpired && !submitted) {
         setTimeExpired(true);
-        alert('Tempo scaduto!');
+        // Auto-save timeout response
+        handleSubmit();
       }
     }, 100); // Update more frequently for smooth countdown
 
     return () => clearInterval(interval);
-  }, [started, startTime, submitted, question?.time_limit, timeExpired, answer]);
+  }, [started, startTime, submitted, question?.time_limit, timeExpired]);
 
   const handleStart = () => {
     setStartTime(Date.now());
@@ -122,15 +123,18 @@ export const Quiz = () => {
   };
 
   const handleSubmit = async () => {
-    if (!answer.trim() || !question || !user || !startTime) return;
+    if (!question || !user || !startTime) return;
+
+    // Allow submit even without answer (for timeout)
+    if (submitted) return; // Prevent double submission
 
     setLoading(true);
 
     try {
       // Calcola se la risposta è corretta (per multiple choice)
-      const isAnswerCorrect = question.question_type === 'multiple_choice'
+      const isAnswerCorrect = question.question_type === 'multiple_choice' && answer.trim()
         ? answer === question.correct_answer
-        : null; // Per domande aperte, null (da valutare manualmente)
+        : false; // Se timeout o risposta vuota, è sbagliata
 
       // Save correctness to state
       setIsCorrect(isAnswerCorrect);
@@ -141,7 +145,7 @@ export const Quiz = () => {
         .insert({
           user_id: user.id,
           question_id: question.id,
-          answer: answer.trim(),
+          answer: answer.trim() || 'TIMEOUT', // Mark timeout responses
           answered_at: new Date().toISOString(),
           time_elapsed: elapsedTime,
           is_correct: isAnswerCorrect,
@@ -149,6 +153,14 @@ export const Quiz = () => {
 
       if (insertError) {
         console.error('Error submitting answer:', insertError);
+
+        // If duplicate key error, it means already submitted - just show success
+        if (insertError.code === '23505') {
+          setSubmitted(true);
+          setLoading(false);
+          return;
+        }
+
         setError('Errore durante l\'invio della risposta.');
         setLoading(false);
         return;
