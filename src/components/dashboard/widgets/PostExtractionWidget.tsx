@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, Mail, ExternalLink, Copy, X, AlertCircle } from 'lucide-react';
-import { supabase } from '../../lib/supabase/client';
+import { supabase } from '../../../lib/supabase/client';
 
 interface PostExtractionWidgetProps {
   wonGift: {
