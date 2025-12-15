@@ -232,7 +232,7 @@ export const Homepage: React.FC = () => {
             phrases={row}
             rowIndex={index}
             direction={index % 2 === 0 ? "left" : "right"}
-            speed={Math.random() * 30 + 50} // Velocità lenta: tra 50s e 80s
+            speed={Math.random() * 40 + 70} // Velocità molto lenta: tra 70s e 110s
           />
         ))}
       </div>
