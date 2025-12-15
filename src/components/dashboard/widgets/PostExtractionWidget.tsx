@@ -224,20 +224,30 @@ export const PostExtractionWidget = ({ wonGift, giftRecipient, myGift, myCity, c
                   </p>
                 </div>
 
-                <div className="flex items-start gap-3">
-                  <Mail className="text-yellow-400 shrink-0 mt-1" size={20} />
-                  <div>
-                    <span className="block text-xs text-slate-500 font-bold uppercase mb-1">
-                      {giftRecipient.contact_email ? 'Email Personale' : 'Email'}
-                    </span>
-                    <p className="text-slate-200 font-mono text-sm">
-                      {giftRecipient.contact_email || giftRecipient.email}
+                {/* Warning if contact_email not provided */}
+                {!giftRecipient.contact_email ? (
+                  <div className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-xl">
+                    <p className="text-sm text-orange-200 font-semibold">
+                      ⚠️ Il destinatario non ha fornito un'email personale
                     </p>
-                    {giftRecipient.contact_email && (
-                      <p className="text-xs text-slate-500 mt-1">Usa questa email per spedire il regalo digitale</p>
-                    )}
+                    <p className="text-xs text-orange-300/70 mt-1">
+                      Contattalo per ottenere i suoi dati di contatto per spedire il regalo digitale
+                    </p>
                   </div>
-                </div>
+                ) : (
+                  <div className="flex items-start gap-3">
+                    <Mail className="text-yellow-400 shrink-0 mt-1" size={20} />
+                    <div>
+                      <span className="block text-xs text-slate-500 font-bold uppercase mb-1">
+                        Email Personale
+                      </span>
+                      <p className="text-slate-200 font-mono text-sm">
+                        {giftRecipient.contact_email}
+                      </p>
+                      <p className="text-xs text-slate-500 mt-1">Usa questa email per spedire il regalo digitale</p>
+                    </div>
+                  </div>
+                )}
               </>
             ) : (
               <>
@@ -436,7 +446,7 @@ export const PostExtractionWidget = ({ wonGift, giftRecipient, myGift, myCity, c
                   <textarea
                     value={addressForm.notes}
                     onChange={(e) => setAddressForm({ ...addressForm, notes: e.target.value })}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none text-slate-900"
                     placeholder="Citofono, piano, ecc."
                     rows={2}
                   />
