@@ -103,7 +103,8 @@ export async function startInteractiveExtraction(): Promise<StartExtractionResul
 
     return {
       success: true,
-      message: `Estrazione live iniziata! ${orderedUsers.length} partecipanti pronti.`
+      message: `Estrazione live iniziata! ${orderedUsers.length} partecipanti pronti.`,
+      turnsCreated: orderedUsers.length
     };
 
   } catch (error: any) {
