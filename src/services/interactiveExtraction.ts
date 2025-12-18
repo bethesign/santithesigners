@@ -53,9 +53,10 @@ export async function startInteractiveExtraction(): Promise<StartExtractionResul
     // 3. Ottieni classifica quiz (ordine di estrazione)
     const { data: quizAnswers, error: quizError } = await supabase
       .from('quiz_answers')
-      .select('user_id, is_correct, time_elapsed')
+      .select('user_id, is_correct, time_elapsed, answered_at')
       .order('is_correct', { ascending: false, nullsFirst: false })
-      .order('time_elapsed', { ascending: true });
+      .order('time_elapsed', { ascending: true })
+      .order('answered_at', { ascending: true }); // Tie-breaker: chi ha premesso submit prima vince
 
     if (quizError) throw quizError;
 

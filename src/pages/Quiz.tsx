@@ -170,7 +170,7 @@ export const Quiz = () => {
       // Logica: prima le risposte corrette ordinate per tempo, poi le errate ordinate per tempo
       const { data: allAnswers } = await supabase
         .from('quiz_answers')
-        .select('user_id, is_correct, time_elapsed')
+        .select('user_id, is_correct, time_elapsed, answered_at')
         .eq('question_id', question.id);
 
       if (allAnswers) {
@@ -181,7 +181,11 @@ export const Quiz = () => {
           if (a.is_correct !== true && b.is_correct === true) return 1;
 
           // Within same correctness group, sort by time (fastest first)
-          return (a.time_elapsed || 999) - (b.time_elapsed || 999);
+          const timeDiff = (a.time_elapsed || 999) - (b.time_elapsed || 999);
+          if (timeDiff !== 0) return timeDiff;
+
+          // Tie-breaker: chi ha premuto submit prima vince
+          return new Date(a.answered_at).getTime() - new Date(b.answered_at).getTime();
         });
 
         const userPosition = sorted.findIndex(a => a.user_id === user.id);
