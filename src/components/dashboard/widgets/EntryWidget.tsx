@@ -8,6 +8,8 @@ interface EntryWidgetProps {
 }
 
 export const EntryWidget = ({ targetDate, onInsertGift }: EntryWidgetProps) => {
+  const isExpired = new Date() > targetDate;
+
   return (
     <motion.div
       key="stage-entry"
@@ -26,13 +28,19 @@ export const EntryWidget = ({ targetDate, onInsertGift }: EntryWidgetProps) => {
       <CountdownTimer label="Chiusura Consegne" targetDate={targetDate} />
 
       <div className="mt-8">
-        <button
-          onClick={onInsertGift}
-          className="w-full py-4 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white rounded-xl font-bold text-lg shadow-lg shadow-red-900/20 transition-all transform hover:scale-[1.02] flex items-center justify-center gap-2"
-        >
-          <Gift size={20} />
-          Inserisci Regalo
-        </button>
+        {isExpired ? (
+          <div className="w-full py-4 bg-slate-700/50 border-2 border-slate-600 text-slate-400 rounded-xl font-bold text-lg text-center">
+            ⏱️ Tempo scaduto. Non è più possibile inserire il regalo.
+          </div>
+        ) : (
+          <button
+            onClick={onInsertGift}
+            className="w-full py-4 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white rounded-xl font-bold text-lg shadow-lg shadow-red-900/20 transition-all transform hover:scale-[1.02] flex items-center justify-center gap-2"
+          >
+            <Gift size={20} />
+            Inserisci Regalo
+          </button>
+        )}
       </div>
     </motion.div>
   );
