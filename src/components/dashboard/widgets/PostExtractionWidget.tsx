@@ -370,7 +370,7 @@ export const PostExtractionWidget = ({ wonGift, giftRecipient, myGift, myCity, c
                     required
                     value={addressForm.contactEmail}
                     onChange={(e) => setAddressForm({ ...addressForm, contactEmail: e.target.value })}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
                     placeholder="tua.email@esempio.com"
                   />
                   <p className="text-xs text-slate-500 mt-1">
@@ -388,7 +388,7 @@ export const PostExtractionWidget = ({ wonGift, giftRecipient, myGift, myCity, c
                     required
                     value={addressForm.street}
                     onChange={(e) => setAddressForm({ ...addressForm, street: e.target.value })}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
                     placeholder="Via/Piazza, numero civico"
                   />
                 </div>
@@ -404,7 +404,7 @@ export const PostExtractionWidget = ({ wonGift, giftRecipient, myGift, myCity, c
                       required
                       value={addressForm.zip}
                       onChange={(e) => setAddressForm({ ...addressForm, zip: e.target.value })}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
                       placeholder="00100"
                     />
                   </div>
@@ -417,7 +417,7 @@ export const PostExtractionWidget = ({ wonGift, giftRecipient, myGift, myCity, c
                       required
                       value={addressForm.city}
                       onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
                       placeholder="Roma"
                     />
                   </div>
@@ -432,7 +432,7 @@ export const PostExtractionWidget = ({ wonGift, giftRecipient, myGift, myCity, c
                     type="text"
                     value={addressForm.province}
                     onChange={(e) => setAddressForm({ ...addressForm, province: e.target.value })}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
                     placeholder="RM"
                     maxLength={2}
                   />
