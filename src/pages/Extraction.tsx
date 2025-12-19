@@ -252,6 +252,17 @@ export const Extraction = () => {
         </AnimatePresence>
       </header>
 
+      {/* Admin Helper Banner */}
+      {user?.role === 'admin' && currentTurn && !isMyTurn && !revealingGift && (
+        <div className="relative z-10 max-w-4xl mx-auto px-4 mb-6">
+          <div className="bg-orange-600/20 border-2 border-orange-500 rounded-xl p-4 backdrop-blur">
+            <p className="text-orange-200 text-center font-bold">
+              🔧 ADMIN - Clicca su un pacco per scegliere al posto di {currentTurn.user.full_name}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Main Grid - Hide while revealing */}
       {!revealingGift && (
         <main className="relative z-10 max-w-6xl mx-auto px-4 pb-20">
