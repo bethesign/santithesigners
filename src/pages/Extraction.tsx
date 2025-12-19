@@ -228,7 +228,7 @@ export const Extraction = () => {
               </div>
 
               {/* Admin: Auto-assign button */}
-              {user?.role === 'admin' && !isMyTurn && !revealingGift && (
+              {user?.role === 'admin' && !revealingGift && (
                 <button
                   onClick={handleAdminAutoAssign}
                   disabled={choosing}
