@@ -201,6 +201,80 @@ export const Admin = () => {
     setTogglingExtraction(false);
   };
 
+  // AUTO-ASSIGN GIFT (skip user's turn in live extraction)
+  const handleAutoAssignGift = async (userId: string, userName: string) => {
+    if (!window.confirm(`Escludere ${userName} dalla live e assegnare automaticamente un regalo?`)) return;
+
+    try {
+      // 1. Find user's turn in extraction
+      const { data: userTurn, error: turnError } = await supabase
+        .from('extraction')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (turnError || !userTurn) {
+        alert('Turno non trovato per questo utente');
+        return;
+      }
+
+      // Check if already revealed
+      if (userTurn.revealed_at) {
+        alert('Questo utente ha già scelto il regalo!');
+        return;
+      }
+
+      // 2. Find an available gift (not yet chosen by anyone)
+      const { data: allExtractions } = await supabase
+        .from('extraction')
+        .select('gift_id')
+        .not('revealed_at', 'is', null);
+
+      const takenGiftIds = allExtractions?.map(e => e.gift_id).filter(Boolean) || [];
+
+      const { data: availableGifts } = await supabase
+        .from('gifts')
+        .select('id')
+        .not('id', 'in', `(${takenGiftIds.length > 0 ? takenGiftIds.join(',') : '00000000-0000-0000-0000-000000000000'})`);
+
+      if (!availableGifts || availableGifts.length === 0) {
+        alert('Nessun regalo disponibile!');
+        return;
+      }
+
+      // Pick first available gift
+      const assignedGiftId = availableGifts[0].id;
+
+      // 3. Assign gift and close turn
+      const { error: updateError } = await supabase
+        .from('extraction')
+        .update({
+          gift_id: assignedGiftId,
+          revealed_at: new Date().toISOString()
+        })
+        .eq('id', userTurn.id);
+
+      if (updateError) {
+        alert(`Errore: ${updateError.message}`);
+        return;
+      }
+
+      // 4. Clear live_state to move to next turn
+      await supabase
+        .from('live_state')
+        .update({
+          revealing_gift_id: null,
+          revealed_at: null
+        })
+        .eq('id', 1);
+
+      alert(`✅ ${userName} escluso! Regalo assegnato automaticamente.`);
+      refreshData();
+    } catch (err: any) {
+      alert(`Errore: ${err.message}`);
+    }
+  };
+
   // RESET FUNCTIONS (for testing)
   const handleResetGifts = async () => {
     if (!window.confirm('ATTENZIONE: Eliminare TUTTI i regali? Questa azione è irreversibile!')) return;
@@ -608,6 +682,7 @@ export const Admin = () => {
                     <th className="p-4 text-center">Fisico</th>
                     <th className="p-4 text-center">Quiz</th>
                     <th className="p-4 text-right">Tempo</th>
+                    <th className="p-4 text-center">Azioni</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
@@ -648,6 +723,17 @@ export const Admin = () => {
                         </td>
                         <td className="p-4 text-right font-mono text-slate-300">
                           {p.quiz_time && p.quiz_time > 0 ? `${p.quiz_time.toFixed(1)}s` : '-'}
+                        </td>
+                        <td className="p-4 text-center">
+                          {settings?.draw_enabled && p.has_uploaded_gift && (
+                            <button
+                              onClick={() => handleAutoAssignGift(p.id, p.full_name)}
+                              className="px-3 py-1 bg-orange-600/20 hover:bg-orange-600/30 text-orange-400 rounded-lg text-xs font-bold border border-orange-600/30 transition-colors"
+                              title="Escludi dalla live e assegna regalo automatico"
+                            >
+                              Escludi Live
+                            </button>
+                          )}
                         </td>
                       </tr>
                     );
