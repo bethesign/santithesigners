@@ -38,8 +38,9 @@ export const Extraction = () => {
     // Trova il regalo che si sta cercando di scegliere
     const selectedGift = giftsWithColors.find(g => g.id === giftId);
 
-    // Impedisci di scegliere il proprio regalo
-    if (selectedGift?.user_id === user?.id) {
+    // Impedisci di scegliere il proprio regalo (non vale per admin che sceglie per altri)
+    const isAdminChoosingForOthers = user?.role === 'admin' && !isMyTurn;
+    if (!isAdminChoosingForOthers && selectedGift?.user_id === user?.id) {
       alert('Non puoi scegliere il tuo regalo! 🎁');
       return;
     }
@@ -269,8 +270,8 @@ export const Extraction = () => {
                 >
                   <GiftBox
                     gift={gift}
-                    onClick={() => isMyTurn && !choosing && handleChooseKeyword(gift.id)}
-                    isMyTurn={isMyTurn}
+                    onClick={() => (isMyTurn || user?.role === 'admin') && !choosing && handleChooseKeyword(gift.id)}
+                    isMyTurn={isMyTurn || user?.role === 'admin'}
                     className="w-full"
                   />
                 </motion.div>
