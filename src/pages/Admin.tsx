@@ -494,11 +494,15 @@ export const Admin = () => {
 
   // SORTED PARTICIPANTS
   const sortedParticipants = [...participants].sort((a, b) => {
-    // 1. Correct answers first (handle null values properly)
+    // 1. People with gifts first (without gift go to the bottom)
+    if (a.has_uploaded_gift && !b.has_uploaded_gift) return -1;
+    if (!a.has_uploaded_gift && b.has_uploaded_gift) return 1;
+
+    // 2. Correct answers first (handle null values properly)
     if (a.quiz_is_correct === true && b.quiz_is_correct !== true) return -1;
     if (a.quiz_is_correct !== true && b.quiz_is_correct === true) return 1;
 
-    // 2. Within same correctness group, sort by time (lowest first)
+    // 3. Within same correctness group, sort by time (lowest first)
     return (a.quiz_time || 999) - (b.quiz_time || 999);
   });
 
