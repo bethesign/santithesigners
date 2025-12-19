@@ -55,7 +55,7 @@ export async function startInteractiveExtraction(): Promise<StartExtractionResul
       .from('quiz_answers')
       .select('user_id, is_correct, time_elapsed, answered_at')
       .order('is_correct', { ascending: false, nullsFirst: false })
-      .order('time_elapsed', { ascending: true })
+      .order('time_elapsed', { ascending: true, nullsLast: true }) // Chi non ha risposto (NULL) va alla fine
       .order('answered_at', { ascending: true }); // Tie-breaker: chi ha premesso submit prima vince
 
     if (quizError) throw quizError;
