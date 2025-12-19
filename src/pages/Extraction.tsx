@@ -9,6 +9,7 @@ import { useInteractiveExtraction } from '../hooks/useInteractiveExtraction';
 import { GiftBox } from '../components/extraction/GiftBox';
 import { Snow } from '../components/extraction/Snow';
 import { assignColorsToGifts } from '../utils/giftColors';
+import { supabase } from '../lib/supabase/client';
 
 export const Extraction = () => {
   const navigate = useNavigate();
@@ -60,6 +61,61 @@ export const Extraction = () => {
     }
 
     setChoosing(false);
+  };
+
+  // ADMIN: Auto-assign gift to current turn user
+  const handleAdminAutoAssign = async () => {
+    if (!currentTurn || !user) return;
+
+    const confirmed = window.confirm(`Assegnare automaticamente un regalo a ${currentTurn.user.full_name}?`);
+    if (!confirmed) return;
+
+    setChoosing(true);
+
+    try {
+      // Find an available gift
+      const takenGiftIds = allTurns
+        .filter(t => t.revealed_at && t.gift_id)
+        .map(t => t.gift_id);
+
+      const availableGift = availableGifts.find(g => !takenGiftIds.includes(g.id));
+
+      if (!availableGift) {
+        alert('Nessun regalo disponibile!');
+        setChoosing(false);
+        return;
+      }
+
+      // Assign gift and close turn
+      const { error: updateError } = await supabase
+        .from('extraction')
+        .update({
+          gift_id: availableGift.id,
+          revealed_at: new Date().toISOString()
+        })
+        .eq('id', currentTurn.id);
+
+      if (updateError) {
+        alert(`Errore: ${updateError.message}`);
+        setChoosing(false);
+        return;
+      }
+
+      // Clear live_state to move to next turn
+      await supabase
+        .from('live_state')
+        .update({
+          revealing_gift_id: null,
+          revealed_at: null
+        })
+        .eq('id', 1);
+
+      // Reload data
+      window.location.reload();
+    } catch (err: any) {
+      alert(`Errore: ${err.message}`);
+      setChoosing(false);
+    }
   };
 
   if (loading) {
@@ -162,7 +218,7 @@ export const Extraction = () => {
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
-              className="mt-6 flex flex-col items-center gap-2"
+              className="mt-6 flex flex-col items-center gap-3"
             >
               <span className="text-sm uppercase tracking-widest text-slate-400">Tocca a</span>
               <div className="bg-white/10 backdrop-blur-md px-8 py-3 rounded-full border border-white/20 shadow-lg">
@@ -170,6 +226,18 @@ export const Extraction = () => {
                   {isMyTurn ? 'Te!' : currentTurn.user.full_name}
                 </span>
               </div>
+
+              {/* Admin: Auto-assign button */}
+              {user?.role === 'admin' && !isMyTurn && !revealingGift && (
+                <button
+                  onClick={handleAdminAutoAssign}
+                  disabled={choosing}
+                  className="px-4 py-2 bg-orange-600 hover:bg-orange-500 disabled:bg-orange-800 disabled:cursor-not-allowed text-white rounded-lg text-sm font-bold shadow-lg transition-all flex items-center gap-2"
+                >
+                  <Sparkles size={16} />
+                  {choosing ? 'Assegnazione...' : 'Assegna Regalo Automatico'}
+                </button>
+              )}
             </motion.div>
           ) : (
             <motion.div
